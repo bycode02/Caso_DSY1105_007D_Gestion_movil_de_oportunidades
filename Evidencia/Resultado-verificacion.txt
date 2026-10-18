@@ -1,0 +1,13 @@
+VERIFICACIÓN REAL DEL PROYECTO
+
+ExampleUnitTest: 1 pruebas; 0 fallos; 0 errores
+OportunidadViewModelTest: 5 pruebas; 0 fallos; 0 errores
+ValidacionTest: 5 pruebas; 0 fallos; 0 errores
+
+Compilación: BUILD SUCCESSFUL
+APK de aplicación: generado
+APK de pruebas instrumentadas: generado, no ejecutado
+Lint: 0 errores, 26 advertencias
+
+Ejecución Android: pendiente (emulador incompatible con HAXM).
+No se generaron capturas de la aplicación ejecutándose.

@@ -1,0 +1,51 @@
+<!doctype html><meta charset="utf-8"><title>Informe primera entrega</title><style>body{max-width:1100px;margin:40px auto;padding:0 24px;font:17px/1.65 system-ui;color:#183a34;background:#f4f7f6}h1,h2{color:#006b60}section{background:white;padding:28px;margin:24px 0;border-radius:12px}img{width:100%;border:1px solid #ddd}pre{white-space:pre-wrap;font:inherit}@media print{section{break-inside:avoid}body{margin:0}}</style><section><strong>Actualización de paquetes:</strong> el código usa com.example.opportunitymanagement y un paquete viewmodel explícito. Las capturas de este informe son anteriores a la refactorización. Consulte Actualizacion-paquetes.md y verificacion-packages.txt.</section><h1>Informe de desarrollo · DSY1105 / 007D</h1><p>Primera entrega · 18 de octubre de 2026</p><section><h2>Alcance y límites de la verificación</h2><p></p><p>Se implementó el módulo de oportunidades. El acceso es una demostración con identidad ficticia;
+la autenticación completa y los demás módulos del caso se reservan para avances posteriores.</p><p>Las imágenes de este informe son capturas de un visor del código fuente real del proyecto.
+**No son capturas de Android Studio ni de la aplicación ejecutándose.** Cada captura identifica
+el archivo y las líneas mostradas. Se incluyen explicaciones y resultados para distinguir
+implementación, compilación, pruebas unitarias y pruebas pendientes.</p><p>El emulador Pixel_7_API_34 no inició: Android Emulator 37.2.12 rechazó HAXM y solicitó WHPX.
+También falló el intento sin aceleración. No había un teléfono Android conectado.
+Por tanto, no se verificaron visualmente la app, los permisos, la lectura óptica de QR ni
+la persistencia después de reiniciar el proceso. No se alteró la configuración de Windows.</p><p>La ubicación es una referencia ficticia opcional de Puente Alto, permitida por el caso.
+No es una lectura del GPS. Si el docente exige la fila de ubicación del dispositivo
+literalmente, ese recurso debe añadirse/probarse; la cámara es el recurso nativo implementado.</p><p></p></section><section><h2>Organización del proyecto</h2><p>Paquetes separados para datos locales, repositorio, pantallas, navegación y utilidades.</p><img src="01_estructura.png" alt="Organización del proyecto"><p><strong>Resultado:</strong> Se inspeccionaron los archivos y se compilaron las clases de la aplicación.</p></section><section><h2>Arquitectura MVVM</h2><p>Las pantallas reciben estado y callbacks. OportunidadViewModel procesa eventos, valida y utiliza OportunidadRepository; el repositorio utiliza el DAO.</p><img src="02_mvvm.png" alt="Arquitectura MVVM"><p><strong>Resultado:</strong> Las pruebas del ViewModel comprueban validación, guardado, edición, error y prevención de envíos duplicados.</p></section><section><h2>Navegación</h2><p>MainActivity construye el repositorio y abre AppNavigation. Rutas: acceso, menú, lista, formulario con id y lector QR.</p><img src="03_navegacion.png" alt="Navegación"><p><strong>Resultado:</strong> Las rutas y pantallas compilan. La ejecución de la secuencia completa en dispositivo sigue pendiente.</p></section><section><h2>Listado de oportunidades</h2><p>La lista presenta nombre, tipo, prioridad, potencial y estado; permite crear y abrir un registro para editar. Incluye estados vacío, carga y error.</p><img src="04_lista.png" alt="Listado de oportunidades"><p><strong>Resultado:</strong> Componente compilado y previews definidos. La prueba de interfaz está compilada, pendiente de ejecución.</p></section><section><h2>Registro y edición</h2><p>Formulario con nombre, tipo, descripción, fuente, prioridad, potencial, estado, observaciones y referencia geográfica ficticia opcional.</p><img src="05_formulario.png" alt="Registro y edición"><p><strong>Resultado:</strong> Las pruebas de lógica verifican que editar conserva el identificador y la fecha de detección. Falta verificación visual en Android.</p></section><section><h2>Validaciones</h2><p>Se rechazan campos obligatorios vacíos o compuestos por espacios y valores ajenos a las opciones permitidas. Los errores se guardan en UiState y se muestran junto a los campos.</p><img src="06_validaciones.png" alt="Validaciones"><p><strong>Resultado:</strong> Las pruebas unitarias verifican campos obligatorios, espacios y opciones inválidas. La evidencia visual de los mensajes en la app queda pendiente.</p></section><section><h2>Persistencia con Room</h2><p>Base de datos oportunidades.db, entidad con identificador autogenerado, inserción, consulta y actualización. Esquema exportado en app/schemas.</p><img src="07_persistencia.png" alt="Persistencia con Room"><p><strong>Resultado:</strong> Room generó su implementación y la aplicación compila. La prueba que cierra y reabre la base está compilada, pero no se ha ejecutado en dispositivo.</p></section><section><h2>UiState, StateFlow y Flow</h2><p>El DAO devuelve Flow; el ViewModel expone StateFlow; Compose observa con collectAsStateWithLifecycle. Guardado y errores forman parte del estado.</p><img src="08_reactividad.png" alt="UiState, StateFlow y Flow"><p><strong>Resultado:</strong> El cableado reactivo compila. La actualización visual de la lista después de guardar está cubierta por una prueba de interfaz aún pendiente de ejecución.</p></section><section><h2>Recurso nativo: cámara y QR</h2><p>CameraX y ML Kit leen códigos OPORTUNIDAD:&lt;id&gt;. Se solicita permiso de cámara, se controla el formato y se abre el registro local.</p><img src="09_camara.png" alt="Recurso nativo: cámara y QR"><p><strong>Resultado:</strong> La función de interpretación de QR pasó pruebas unitarias. Permisos, captura de cámara y reconocimiento óptico requieren prueba en Android.</p></section><section><h2>Pruebas del desarrollo</h2><p>Diez pruebas nuevas de lógica, además de las pruebas base del proyecto. Pruebas instrumentadas preparadas para flujo completo y persistencia real.</p><img src="10_pruebas.png" alt="Pruebas del desarrollo"><p><strong>Resultado:</strong> Consultar los XML y verificacion-build.txt de esta carpeta para resultados exactos. No se presenta una prueba instrumentada compilada como ejecutada.</p></section><section><h2>Previews por componente visual</h2><p>Vistas previas para acceso, menú, lista con datos y vacía, tarjeta, campos, formulario normal y con errores, cámara y tema.</p><img src="11_previews.png" alt="Previews por componente visual"><p><strong>Resultado:</strong> Las funciones Preview compilan. El lector usa LocalInspectionMode para evitar abrir la cámara en el editor. AppNavigation es el contenedor de integración; sus pantallas tienen previews independientes.</p></section><section><h2>Comprobaciones y pendientes</h2><pre>
+
+- Consultar `verificacion-build.txt` para el resultado de compilación, pruebas y lint.
+- Abrir los previews en Android Studio y revisar tamaños de texto, teclado y desplazamiento.
+- Ejecutar `gradlew.bat connectedDebugAndroidTest` con un dispositivo de prueba disponible.
+- La prueba `flujoCompleto` guarda capturas en la carpeta externa de la app: `files/Evidencia`.
+- Copiar esas capturas a esta carpeta, preservando las evidencias de código.
+- Crear una oportunidad, cerrarla completamente y volver a abrir la aplicación: comprobar que permanece.
+- Modificarla y comprobar que se mantiene un único registro y se actualiza la lista.
+- Probar QR válido, inválido, registro inexistente y permisos de cámara concedidos/rechazados.
+- Revisar los datos y explicaciones del informe antes de presentarlo.
+- Cada integrante debe realizar y registrar sus contribuciones. No se crearon commits atribuidos a terceros.
+
+## Guion manual de demostración
+
+1. Iniciar sesión de prueba y abrir Oportunidades.
+2. Crear una oportunidad; intentar guardar vacía y revisar errores.
+3. Completar los campos obligatorios y guardar.
+4. Abrir el registro, modificar prioridad/estado y guardar.
+5. Cerrar y reiniciar la aplicación; volver al listado.
+6. Abrir el registro y anotar el texto OPORTUNIDAD:&lt;id&gt;.
+7. Escanear un QR con ese texto desde el menú; consultar el registro.
+8. Repetir con un QR inválido y con un identificador inexistente.
+
+## Referencias de alcance
+
+- Lineamientos 007D.pdf, primera entrega: oportunidades, MVVM, Room, validaciones, navegación y evidencias.
+- Caso_DSY1105_007D_Gestión móvil de oportunidades y activaciones corporativas.pdf: tipos, estados, datos ficticios y alcance académico.
+</pre></section><section><h2>Resultado final de verificación</h2><pre>VERIFICACIÓN REAL DEL PROYECTO
+
+ExampleUnitTest: 1 pruebas; 0 fallos; 0 errores
+OportunidadViewModelTest: 5 pruebas; 0 fallos; 0 errores
+ValidacionTest: 5 pruebas; 0 fallos; 0 errores
+
+Compilación: BUILD SUCCESSFUL
+APK de aplicación: generado
+APK de pruebas instrumentadas: generado, no ejecutado
+Lint: 0 errores, 26 advertencias
+
+Ejecución Android: pendiente (emulador incompatible con HAXM).
+No se generaron capturas de la aplicación ejecutándose.
+</pre><img src="12_verificacion.png" alt="Resultado de verificación"></section>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.example.caso_dsy1105_007d_gestion_movil_de_oportunidades.OportunidadViewModelTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-18T19:51:44.994Z" hostname="OWO" time="0.209">
+  <properties/>
+  <testcase name="invalidoNoSeGuarda" classname="com.example.caso_dsy1105_007d_gestion_movil_de_oportunidades.OportunidadViewModelTest" time="0.191"/>
+  <testcase name="errorPermiteReintentar" classname="com.example.caso_dsy1105_007d_gestion_movil_de_oportunidades.OportunidadViewModelTest" time="0.007"/>
+  <testcase name="editarConservaFechaYRegistro" classname="com.example.caso_dsy1105_007d_gestion_movil_de_oportunidades.OportunidadViewModelTest" time="0.005"/>
+  <testcase name="identificadorInexistenteNoCreaRegistro" classname="com.example.caso_dsy1105_007d_gestion_movil_de_oportunidades.OportunidadViewModelTest" time="0.003"/>
+  <testcase name="dobleClickGuardaUnaVez" classname="com.example.caso_dsy1105_007d_gestion_movil_de_oportunidades.OportunidadViewModelTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
