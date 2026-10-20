@@ -1,0 +1,9 @@
+
+com.example.opportunitymanagement.AuthRepositoryTest:.....
+com.example.opportunitymanagement.AuthScreensTest:.....
+
+Time: 50.786
+
+OK (10 tests)
+
+

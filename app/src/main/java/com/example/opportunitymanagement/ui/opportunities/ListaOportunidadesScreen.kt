@@ -1,5 +1,6 @@
 package com.example.opportunitymanagement.ui.opportunities
 
+import com.example.opportunitymanagement.ui.theme.Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme
 import com.example.opportunitymanagement.viewmodel.ListaUiState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -95,17 +96,17 @@ private val ejemplo = OportunidadEntity(
 @Preview(showBackground = true)
 @Composable
 private fun ListaPreview() {
-    MaterialTheme { ListaOportunidadesScreen(ListaUiState(listOf(ejemplo), false), {}, {}, {}) }
+    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme { ListaOportunidadesScreen(ListaUiState(listOf(ejemplo), false), {}, {}, {}) }
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun ListaVaciaPreview() {
-    MaterialTheme { ListaOportunidadesScreen(ListaUiState(cargando = false), {}, {}, {}) }
+    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme { ListaOportunidadesScreen(ListaUiState(cargando = false), {}, {}, {}) }
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun CardPreview() {
-    MaterialTheme { OportunidadCard(ejemplo, {}) }
+    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme { OportunidadCard(ejemplo, {}) }
 }

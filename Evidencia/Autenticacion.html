@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Evidencias · Inicio de sesión y registro</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f4f7f6;color:#183a34;font:16px/1.6 system-ui,sans-serif}
+    main{max-width:1050px;margin:auto;padding:40px 24px}h1,h2{line-height:1.2;color:#006b60}
+    .eyebrow{font-weight:700;letter-spacing:.1em;font-size:13px}.note{background:#e1eee9;border-radius:16px;padding:20px;margin:24px 0}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+    figure{margin:0;padding:20px;background:white;border-radius:16px;border:1px solid #d9e2de}
+    figcaption{margin-bottom:16px;font-weight:600}img{display:block;width:100%;max-width:360px;height:auto;margin:auto;border-radius:8px}
+    a{color:#006b60}code{background:#e4eae7;padding:2px 6px;border-radius:4px}small{color:#52655e}
+    section{margin:36px 0}@media(max-width:620px){.grid{grid-template-columns:1fr}main{padding:24px 16px}}
+  </style>
+</head>
+<body><main>
+  <div class="eyebrow">ANDROID · KOTLIN · COMPOSE · MVVM</div>
+  <h1>Inicio de sesión y registro</h1>
+  <p>20 de octubre de 2026 · Capturas reales del emulador Pixel 7, Android 14 (API 34).</p>
+  <div class="note">
+    Las pantallas conservan el tema del proyecto. El registro crea una cuenta
+    <strong>VENDEDOR</strong>; el login devuelve el rol guardado del usuario.
+    Los formularios se ejecutaron desde una actividad de pruebas con Room en memoria.
+    La navegación de la aplicación permanece a cargo del autor del proyecto.
+  </div>
+  <section class="grid">
+    <figure><figcaption>30 · Iniciar sesión</figcaption><img src="30_login.png" alt="Formulario de login con correo y contraseña"></figure>
+    <figure><figcaption>32 · Crear una cuenta</figcaption><img src="32_register.png" alt="Formulario de registro sin selector de administrador"></figure>
+  </section>
+  <section>
+    <h2>Validaciones y resultados</h2>
+    <div class="grid">
+      <figure><figcaption>31 · Campos obligatorios</figcaption><img src="31_login_validation.png" alt="Mensajes de error en el login"></figure>
+      <figure><figcaption>33 · Validación del registro</figcaption><img src="33_register_validation.png" alt="Campos incompletos del registro"></figure>
+      <figure><figcaption>34 · Cuenta creada</figcaption><img src="34_register_success.png" alt="Confirmación de registro exitoso"></figure>
+      <figure><figcaption>35 · Contraseña incorrecta</figcaption><img src="35_login_error.png" alt="Mensaje de acceso rechazado"></figure>
+      <figure><figcaption>36 · Sesión iniciada</figcaption><img src="36_login_success.png" alt="Confirmación del inicio de sesión"></figure>
+      <figure><figcaption>37 · Operación en curso</figcaption><img src="37_login_loading.png" alt="Indicador de carga y controles deshabilitados"></figure>
+      <figure><figcaption>38 · Tema oscuro</figcaption><img src="38_register_dark.png" alt="Pantalla de registro con el tema oscuro del proyecto"></figure>
+    </div>
+  </section>
+  <section>
+    <h2>Integración y comprobaciones</h2>
+    <p>Los estados <code>LoginUiState</code> y <code>RegisterUiState</code> están en archivos
+    independientes. Todos los componentes nuevos incluyen previews. El usuario y su
+    credencial se guardan en una única transacción.</p>
+    <p>La aplicación compila y las 11 pruebas unitarias existentes pasaron. Consulta el
+    <a href="auth-instrumentation.txt">resultado de las pruebas instrumentadas</a> para
+    la verificación de roles, credenciales, validaciones y formularios.</p>
+    <p>Quedan pendientes la navegación, la sesión compartida, el primer administrador
+    y la autorización de las operaciones del menú. La compatibilidad del hasher
+    existente con Android 7 (API 24–25) debe resolverse antes de admitir esas versiones.</p>
+    <p><a href="../AUTHENTICATION.md">Guía para conectar las pantallas</a> ·
+    <a href="Informe.html">Informe completo de evidencias</a></p>
+  </section>
+</main></body>
+</html>

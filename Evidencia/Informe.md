@@ -1,4 +1,4 @@
-> Actualización: los paquetes ahora están en inglés. Las capturas siguientes corresponden a la versión anterior. Consulte Actualizacion-paquetes.md y verificacion-packages.txt.
+> Estado actual: consulta la sección final de tema y navegación (39–54), la de autenticación y [sus capturas reales](Autenticacion.html). Las evidencias 01–29 conservan versiones anteriores del código. Los paquetes están en inglés.
 
 # Informe de desarrollo — primera entrega DSY1105 / 007D
 
@@ -7,17 +7,17 @@ Proyecto: Gestión móvil de oportunidades y activaciones corporativas.
 Implementación Android nativa: Kotlin, Jetpack Compose, Material 3, MVVM, Room y StateFlow.
 Fecha: 18 de octubre de 2026. Desarrollo apoyado con IA; el equipo debe revisar y validar la entrega.
 
-## Alcance y estado de la evidencia
+## Alcance y estado de la evidencia de la primera entrega
 
 Se implementó el módulo de oportunidades. El acceso es una demostración con identidad ficticia;
 la autenticación completa y los demás módulos del caso se reservan para avances posteriores.
 
-Las imágenes de este informe son capturas de un visor del código fuente real del proyecto.
+Las imágenes 01–29 son capturas de un visor del código fuente real del proyecto.
 **No son capturas de Android Studio ni de la aplicación ejecutándose.** Cada captura identifica
 el archivo y las líneas mostradas. Se incluyen explicaciones y resultados para distinguir
 implementación, compilación, pruebas unitarias y pruebas pendientes.
 
-El emulador Pixel_7_API_34 no inició: Android Emulator 37.2.12 rechazó HAXM y solicitó WHPX.
+En la primera entrega, el emulador Pixel_7_API_34 no inició: Android Emulator 37.2.12 rechazó HAXM y solicitó WHPX.
 También falló el intento sin aceleración. No había un teléfono Android conectado.
 Por tanto, no se verificaron visualmente la app, los permisos, la lectura óptica de QR ni
 la persistencia después de reiniciar el proceso. No se alteró la configuración de Windows.
@@ -243,3 +243,170 @@ Después de incorporar el módulo de usuarios se ejecutaron `assembleDebug` y `t
 - Separar `RegisterUiState`, `LoginUiState` y los ViewModels correspondientes.
 - Crear las pantallas Compose de registro, inicio de sesión y administración, cada componente con `@Preview`.
 - Añadir autorización por rol y pruebas unitarias e instrumentadas.
+
+## Actualización: pantallas de autenticación — 20 de octubre de 2026
+
+Las secciones anteriores conservan el estado histórico de cada entrega. En este
+avance, Room ya incluye usuarios y credenciales en la versión 3.
+
+Se crearon `LoginScreen` y `RegisterScreen`, con los colores y componentes de
+Material 3 del proyecto, errores por campo, contraseñas ocultas con control de
+visibilidad, estados de carga, desplazamiento y adaptación al teclado.
+Todos los componentes nuevos tienen `@Preview`. `LoginUiState` y `RegisterUiState`
+están en archivos separados dentro de `viewmodel`.
+
+El registro asigna `Role.VENDEDOR` desde `AuthRepository.register()`. El formulario
+no permite elegir administrador. El login verifica la contraseña, comprueba que
+la cuenta esté activa y devuelve el rol guardado en `UsuarioEntity.role`.
+Usuario y credencial se guardan en una única transacción para evitar cuentas
+incompletas si ocurre un fallo.
+
+`MainActivity` y `AppNavigation` quedan sin cambios: la conexión de rutas la hará
+el autor del proyecto. La prueba muestra estas pantallas directamente en una
+actividad de pruebas y utiliza una base de datos temporal en memoria.
+
+Las capturas **30–38 sí corresponden a ejecución real en Android 14**, en el
+emulador Pixel 7 API 34; las capturas 01–29 son las evidencias anteriores de código.
+
+| Archivo | Evidencia |
+| --- | --- |
+| `30_login.png` | Formulario de inicio de sesión |
+| `31_login_validation.png` | Validación de campos vacíos |
+| `32_register.png` | Formulario de registro con cuenta de vendedor |
+| `33_register_validation.png` | Validaciones del registro |
+| `34_register_success.png` | Usuario y credencial creados |
+| `35_login_error.png` | Rechazo de contraseña incorrecta |
+| `36_login_success.png` | Inicio de sesión correcto |
+| `37_login_loading.png` | Controles deshabilitados durante el acceso |
+| `38_register_dark.png` | Registro con tema oscuro |
+
+![Inicio de sesión](30_login.png)
+
+![Registro](32_register.png)
+
+![Registro completado](34_register_success.png)
+
+El registro de pruebas instrumentadas está en `auth-instrumentation.txt`.
+La guía `../AUTHENTICATION.md` explica los callbacks y la preparación del repositorio
+y los ViewModels para conectar la navegación.
+
+Pendientes de integración: navegación, sesión compartida, primer administrador,
+gestión administrativa y autorización de operaciones por rol. La compatibilidad
+del `PasswordHasher` existente con API 24–25 también debe resolverse; las pruebas
+de este avance se ejecutan en API 34.
+
+## Actualización: tema verde y navegación con login y registro — 20 de octubre de 2026
+
+En este avance se unificó el color de toda la aplicación con el verde petróleo
+de las pantallas de inicio de sesión y registro, y se conectaron esas pantallas
+a la navegación de producción. Las capturas **39–47 son del visor de código
+fuente real**; las capturas **48–54 son de la aplicación ejecutándose** en el
+emulador Pixel 7 API 34, iniciada desde `MainActivity`.
+
+### Paleta verde del tema
+
+**Implementación:** `Color.kt` reemplaza los colores morados de la plantilla
+(`Purple40`, `PurpleGrey40`, etc.) por una paleta verde completa: primario
+`#006B60`, secundario verde grisáceo, contenedores, fondos, superficies y
+contornos con tinte verde, para el tema claro y el oscuro. Se conserva el ámbar
+como color terciario.
+
+![Paleta verde del tema](39_theme_colors.png)
+
+### Esquema de color de Material 3
+
+**Implementación:** `LightColorScheme` y `DarkColorScheme` asignan todos los
+roles de Material 3. Antes solo se definían `primary`, `secondary` y `tertiary`;
+los demás roles (fondo, `secondaryContainer`, `surfaceContainerLow`…) usaban los
+valores por defecto de Material, que son lavanda. Por eso tarjetas, fondos y
+avisos se veían morados aunque el primario fuera verde.
+
+![Esquema de color claro](40_theme_light_scheme.png)
+
+**Implementación:** el parámetro `dynamicColor` ahora es `false` por defecto.
+En Android 12+ el color dinámico toma los colores del fondo de pantalla del
+teléfono y reemplazaba el verde del proyecto.
+
+![Tema sin color dinámico](41_theme_function.png)
+
+### Rutas de inicio de sesión y registro
+
+**Implementación:** `AppNavigation` recibe `AuthRepository` y crea una única
+`AuthViewModelFactory`. La ruta inicial pasa a ser `login`. Cada destino obtiene
+su propio ViewModel con `viewModel(factory = authFactory)` y observa el estado con
+`collectAsStateWithLifecycle`. Cuando `authenticatedUser` deja de ser `null`, un
+`LaunchedEffect` guarda el nombre del usuario y navega al menú quitando `login`
+de la pila. «Crear cuenta» abre `registro`; «Iniciar sesión» e «Ir a iniciar
+sesión» vuelven a `login`.
+
+![Rutas de login y registro](42_nav_login_route.png)
+
+**Resultado y verificación:** `EntregaTest.flujoCompleto` recorre esta navegación
+en el emulador y pasó.
+
+### Menú y cierre de sesión
+
+**Implementación:** el menú muestra el nombre del usuario autenticado. Al cerrar
+sesión se limpia el usuario y se navega a `login` eliminando el menú de la pila,
+por lo que el botón Atrás no permite volver al panel.
+
+![Menú y cierre de sesión](43_nav_menu_session.png)
+
+**Implementación:** `MenuScreen` recibe el nombre como parámetro, sin depender
+del ViewModel ni de Room, y su `@Preview` usa un nombre de ejemplo. Se eliminó la
+pantalla de acceso de demostración, que ya no se usa.
+
+![Pantalla de menú](44_menu_screen.png)
+
+### Repositorio de autenticación en MainActivity
+
+**Implementación:** `MainActivity` obtiene una sola instancia de `AppDatabase` y
+crea con ella `OportunidadRepository` y `AuthRepository`, que se pasan a la
+navegación.
+
+![MainActivity](45_main_activity.png)
+
+### Previews con el tema del proyecto
+
+**Implementación:** los previews de navegación, lista, tarjeta, formulario y
+campos usaban `MaterialTheme { }`, que muestra la paleta morada por defecto.
+Ahora usan `Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme`, igual que
+la aplicación.
+
+![Previews con el tema](46_previews_theme.png)
+
+### Prueba del flujo completo
+
+**Implementación:** como ya no existe el acceso de demostración, `flujoCompleto`
+crea una cuenta de vendedor con un correo único, vuelve al login, inicia sesión
+y continúa con el flujo de oportunidades y QR.
+
+![Prueba del flujo completo](47_flow_test.png)
+
+**Resultado y verificación:** pasaron 13 pruebas instrumentadas y 11 unitarias.
+Detalle en `verificacion-tema-navegacion.txt`.
+
+### Capturas de la aplicación ejecutada
+
+| Archivo | Evidencia |
+| --- | --- |
+| `48_app_login.png` | Pantalla inicial: inicio de sesión |
+| `49_app_registro.png` | Registro abierto desde «Crear cuenta» |
+| `50_app_registro_ok.png` | Cuenta creada, botón «Ir a iniciar sesión» |
+| `51_app_menu.png` | Menú con el nombre del usuario autenticado |
+| `52_app_lista.png` | Listado de oportunidades con el tema verde |
+| `53_app_formulario.png` | Formulario con validaciones y botones verdes |
+| `54_app_logout.png` | Regreso al login después de cerrar sesión |
+
+![Login](48_app_login.png)
+
+![Menú](51_app_menu.png)
+
+![Formulario](53_app_formulario.png)
+
+### Pendientes
+
+- La sesión no persiste al cerrar la aplicación por completo; solo sobrevive
+  a rotaciones y recreaciones de la actividad.
+- Primer administrador, gestión de usuarios y autorización por rol siguen pendientes.
+- Revisar los previews en Android Studio y probar en un teléfono físico.

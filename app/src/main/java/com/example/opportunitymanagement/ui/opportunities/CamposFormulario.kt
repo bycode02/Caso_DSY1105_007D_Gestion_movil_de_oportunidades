@@ -1,5 +1,6 @@
 package com.example.opportunitymanagement.ui.opportunities
 
+import com.example.opportunitymanagement.ui.theme.Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme
 import com.example.opportunitymanagement.viewmodel.Opciones
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -72,11 +73,11 @@ fun CampoSeleccion(
 @Preview(showBackground = true)
 @Composable
 private fun TextoPreview() {
-    MaterialTheme { CampoTexto("Nombre *", "", "Campo obligatorio", cambiar = {}) }
+    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme { CampoTexto("Nombre *", "", "Campo obligatorio", cambiar = {}) }
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun SeleccionPreview() {
-    MaterialTheme { CampoSeleccion("Prioridad", "Alta", Opciones.prioridades, null, cambiar = {}) }
+    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme { CampoSeleccion("Prioridad", "Alta", Opciones.prioridades, null, cambiar = {}) }
 }

@@ -4,12 +4,14 @@ import android.content.Context
 import androidx.room.*
 
 @Database(entities = [OportunidadEntity::class,
-                      UsuarioEntity::class],
-    version = 2,
+                      UsuarioEntity::class,
+                      CredentialEntity::class],
+    version = 3,
     exportSchema = true)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun oportunidades(): OportunidadDao
     abstract fun usuarios(): UsuarioDao
+    abstract fun credenciales(): CredentialDao
 
     companion object {
         @Volatile

@@ -9,41 +9,81 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
-import com.example.opportunitymanagement.ui.theme.Pink40
-import com.example.opportunitymanagement.ui.theme.Pink80
-import com.example.opportunitymanagement.ui.theme.Purple40
-import com.example.opportunitymanagement.ui.theme.Purple80
-import com.example.opportunitymanagement.ui.theme.PurpleGrey40
-import com.example.opportunitymanagement.ui.theme.PurpleGrey80
 import com.example.opportunitymanagement.ui.theme.Typography
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = Green80,
+    onPrimary = OnGreen80,
+    primaryContainer = GreenContainer30,
+    onPrimaryContainer = OnGreenContainer90,
+    inversePrimary = Green40,
+    secondary = GreenGrey80,
+    onSecondary = OnGreenGrey80,
+    secondaryContainer = GreenGreyContainer30,
+    onSecondaryContainer = OnGreenGreyContainer90,
+    tertiary = Amber80,
+    onTertiary = OnAmber80,
+    tertiaryContainer = AmberContainer30,
+    onTertiaryContainer = AmberContainer90,
+    background = NeutralDark,
+    onBackground = OnNeutralDark,
+    surface = NeutralDark,
+    onSurface = OnNeutralDark,
+    surfaceVariant = NeutralVariantDark,
+    onSurfaceVariant = OnNeutralVariantDark,
+    surfaceTint = Green80,
+    inverseSurface = OnNeutralDark,
+    inverseOnSurface = InverseSurfaceLight,
+    outline = OutlineDark,
+    outlineVariant = NeutralVariantDark,
+    surfaceBright = SurfaceBrightDark,
+    surfaceDim = NeutralDark,
+    surfaceContainerLowest = SurfaceContainerLowestDark,
+    surfaceContainerLow = SurfaceContainerLowDark,
+    surfaceContainer = SurfaceContainerDark,
+    surfaceContainerHigh = SurfaceContainerHighDark,
+    surfaceContainerHighest = SurfaceContainerHighestDark
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    primary = Green40,
+    onPrimary = OnGreen40,
+    primaryContainer = GreenContainer90,
+    onPrimaryContainer = OnGreenContainer10,
+    inversePrimary = Green80,
+    secondary = GreenGrey40,
+    onSecondary = OnGreenGrey40,
+    secondaryContainer = GreenGreyContainer90,
+    onSecondaryContainer = OnGreenGreyContainer10,
+    tertiary = Amber40,
+    onTertiary = OnGreen40,
+    tertiaryContainer = AmberContainer90,
+    onTertiaryContainer = OnAmberContainer10,
+    background = NeutralLight,
+    onBackground = OnNeutralLight,
+    surface = NeutralLight,
+    onSurface = OnNeutralLight,
+    surfaceVariant = NeutralVariantLight,
+    onSurfaceVariant = OnNeutralVariantLight,
+    surfaceTint = Green40,
+    inverseSurface = InverseSurfaceLight,
+    inverseOnSurface = InverseOnSurfaceLight,
+    outline = OutlineLight,
+    outlineVariant = OutlineVariantLight,
+    surfaceBright = NeutralLight,
+    surfaceDim = SurfaceDimLight,
+    surfaceContainerLowest = SurfaceContainerLowestLight,
+    surfaceContainerLow = SurfaceContainerLowLight,
+    surfaceContainer = SurfaceContainerLight,
+    surfaceContainerHigh = SurfaceContainerHighLight,
+    surfaceContainerHighest = SurfaceContainerHighestLight
 )
 
 @Composable
 fun Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    // El color dinámico de Android 12+ reemplazaría el verde del proyecto.
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

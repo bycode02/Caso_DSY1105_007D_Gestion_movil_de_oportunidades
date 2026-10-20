@@ -1,0 +1,29 @@
+VERIFICACIÓN: TEMA VERDE Y NAVEGACIÓN CON LOGIN Y REGISTRO
+Fecha: 20 de octubre de 2026
+Dispositivo: emulador Pixel_7_API_34 (Android 14)
+
+Comando: gradlew.bat assembleDebug testDebugUnitTest connectedDebugAndroidTest
+Resultado: BUILD SUCCESSFUL
+
+PRUEBAS EJECUTADAS
+Pruebas unitarias
+  ExampleUnitTest: 1 pruebas; 0 fallos; 0 errores
+  OportunidadViewModelTest: 5 pruebas; 0 fallos; 0 errores
+  ValidacionTest: 5 pruebas; 0 fallos; 0 errores
+Pruebas instrumentadas: 13 pruebas; 0 fallos; 0 errores
+  AuthRepositoryTest: 5
+  AuthScreensTest: 5
+  EntregaTest: 2 (flujoCompleto ahora registra una cuenta e inicia sesión
+               desde MainActivity antes de abrir el menú)
+  ExampleInstrumentedTest: 1
+
+CAPTURAS
+39–47: visor del código fuente real (no son la aplicación ejecutándose).
+48–54: aplicación real ejecutada en el emulador, desde MainActivity y la
+       navegación de producción.
+
+COMPROBACIONES PENDIENTES
+- Revisar visualmente los previews en Android Studio.
+- Probar el flujo en un teléfono físico.
+- Sesión persistente al cerrar la aplicación: no implementada; la sesión
+  vive mientras exista la actividad (rememberSaveable).

@@ -1,5 +1,6 @@
 package com.example.opportunitymanagement.ui.opportunities
 
+import com.example.opportunitymanagement.ui.theme.Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme
 import com.example.opportunitymanagement.viewmodel.OportunidadUiState
 import com.example.opportunitymanagement.viewmodel.Opciones
 import com.example.opportunitymanagement.viewmodel.validar
@@ -136,13 +137,13 @@ fun OportunidadFormScreen(
 @Preview(showBackground = true, heightDp = 1800)
 @Composable
 private fun FormPreview() {
-    MaterialTheme { OportunidadFormScreen(OportunidadUiState(), { _, _ -> }, {}, {}) }
+    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme { OportunidadFormScreen(OportunidadUiState(), { _, _ -> }, {}, {}) }
 }
 
 @Preview(showBackground = true, heightDp = 1800)
 @Composable
 private fun ErroresPreview() {
-    MaterialTheme {
+    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme {
         OportunidadFormScreen(
             OportunidadUiState(errores = validar(OportunidadUiState())),
             { _, _ -> },

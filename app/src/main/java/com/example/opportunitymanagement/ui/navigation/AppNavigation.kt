@@ -9,6 +9,7 @@ import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -18,28 +19,67 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.compose.*
+import com.example.opportunitymanagement.data.repository.AuthRepository
 import com.example.opportunitymanagement.data.repository.OportunidadRepository
+import com.example.opportunitymanagement.ui.auth.LoginScreen
+import com.example.opportunitymanagement.ui.auth.RegisterScreen
 import com.example.opportunitymanagement.ui.opportunities.*
+import com.example.opportunitymanagement.ui.theme.Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme
 import com.example.opportunitymanagement.utils.QrScanner
+import com.example.opportunitymanagement.viewmodel.AuthViewModelFactory
+import com.example.opportunitymanagement.viewmodel.LoginViewModel
+import com.example.opportunitymanagement.viewmodel.RegisterViewModel
 
 @Composable
-fun AppNavigation(repository: OportunidadRepository) {
+fun AppNavigation(repository: OportunidadRepository, authRepository: AuthRepository) {
     val nav = rememberNavController()
-    NavHost(nav, startDestination = "acceso") {
-        composable("acceso") {
-            AccesoScreen {
-                nav.navigate("menu") {
-                    popUpTo("acceso") {
-                        inclusive = true
-                    }
+    val authFactory = remember(authRepository) { AuthViewModelFactory(authRepository) }
+    // Sesión de la navegación: nombre del usuario autenticado, null si no hay sesión.
+    var usuario by rememberSaveable { mutableStateOf<String?>(null) }
+    NavHost(nav, startDestination = "login") {
+        composable("login") {
+            val vm: LoginViewModel = viewModel(factory = authFactory)
+            val state by vm.uiState.collectAsStateWithLifecycle()
+            LaunchedEffect(state.authenticatedUser?.id) {
+                state.authenticatedUser?.let {
+                    usuario = it.nombre
+                    nav.navigate("menu") { popUpTo("login") { inclusive = true } }
                 }
             }
+            LoginScreen(
+                state = state,
+                onEmailChanged = vm::onEmailChanged,
+                onPasswordChanged = vm::onPasswordChanged,
+                onLogin = vm::login,
+                onRegister = { nav.navigate("registro") }
+            )
+        }
+        composable("registro") {
+            val vm: RegisterViewModel = viewModel(factory = authFactory)
+            val state by vm.uiState.collectAsStateWithLifecycle()
+            RegisterScreen(
+                state = state,
+                onNameChanged = vm::onNameChanged,
+                onEmailChanged = vm::onEmailChanged,
+                onPasswordChanged = vm::onPasswordChanged,
+                onConfirmPasswordChanged = vm::onConfirmPasswordChanged,
+                onRegister = vm::register,
+                onLogin = {
+                    if (!nav.popBackStack("login", inclusive = false)) {
+                        nav.navigate("login") { popUpTo("registro") { inclusive = true } }
+                    }
+                }
+            )
         }
         composable("menu") {
             MenuScreen(
+                usuario.orEmpty(),
                 { nav.navigate("lista") },
                 { nav.navigate("qr") },
-                { nav.navigate("acceso") { popUpTo("menu") { inclusive = true } } })
+                {
+                    usuario = null
+                    nav.navigate("login") { popUpTo("menu") { inclusive = true } }
+                })
         }
         composable("lista") {
             val vm: OportunidadViewModel =
@@ -68,38 +108,7 @@ fun AppNavigation(repository: OportunidadRepository) {
 }
 
 @Composable
-fun AccesoScreen(entrar: () -> Unit) {
-    Column(Modifier
-     .fillMaxSize()
-     .padding(28.dp), verticalArrangement = Arrangement.Center) {
-        Text(
-            "OPORTUNIDADES",
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.labelLarge
-        )
-        Spacer(Modifier.height(16.dp))
-        Text("Conecta con la próxima oportunidad", style = MaterialTheme.typography.headlineLarge)
-        Spacer(Modifier.height(20.dp))
-        Text("Organiza eventos, prioriza oportunidades y prepara tu próxima activación corporativa.")
-        Spacer(Modifier.height(32.dp))
-        Card {
-            Column(Modifier.padding(20.dp)) {
-                Text(
-                    "Acceso de demostración",
-                    style = MaterialTheme.typography.titleMedium
-                ); Text("Ejecutivo de prueba · Equipo comercial"); Text("Cuenta ficticia. Los registros se guardan en este dispositivo.")
-            }
-        }
-        Spacer(Modifier.height(24.dp))
-        Button(
-            onClick = entrar,
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("Iniciar sesión de prueba") }
-    }
-}
-
-@Composable
-fun MenuScreen(lista: () -> Unit, qr: () -> Unit, salir: () -> Unit) {
+fun MenuScreen(nombre: String, lista: () -> Unit, qr: () -> Unit, salir: () -> Unit) {
     Column(
         Modifier
          .fillMaxSize()
@@ -108,7 +117,7 @@ fun MenuScreen(lista: () -> Unit, qr: () -> Unit, salir: () -> Unit) {
     ) {
         Spacer(Modifier.height(24.dp))
         Text("Panel comercial", style = MaterialTheme.typography.headlineLarge)
-        Text("Hola, Ejecutivo de prueba", style = MaterialTheme.typography.titleMedium)
+        Text("Hola, $nombre", style = MaterialTheme.typography.titleMedium)
         Text("Centraliza tus oportunidades y mantén al día cada gestión.")
         Card(
             onClick = lista,
@@ -125,8 +134,8 @@ fun MenuScreen(lista: () -> Unit, qr: () -> Unit, salir: () -> Unit) {
             onClick = qr,
             modifier = Modifier.fillMaxWidth()
         ) { Text("Consultar oportunidad por QR") }
-        Text("Primera entrega · Almacenamiento local", style = MaterialTheme.typography.bodySmall)
-        TextButton(onClick = salir) { Text("Cerrar sesión de prueba") }
+        Text("Almacenamiento local", style = MaterialTheme.typography.bodySmall)
+        TextButton(onClick = salir) { Text("Cerrar sesión") }
     }
 }
 
@@ -181,18 +190,12 @@ fun QrScreen(abrir: (Long) -> Unit, volver: () -> Unit) {
 
 @Preview(showBackground = true)
 @Composable
-private fun AccesoPreview() {
-    MaterialTheme { AccesoScreen {} }
-}
-
-@Preview(showBackground = true)
-@Composable
 private fun MenuPreview() {
-    MaterialTheme { MenuScreen({}, {}, {}) }
+    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme { MenuScreen("Vendedor de prueba", {}, {}, {}) }
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun QrPreview() {
-    MaterialTheme { QrScreen({}, {}) }
+    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme { QrScreen({}, {}) }
 }

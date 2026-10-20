@@ -23,8 +23,20 @@ class EntregaTest {
  private fun texto(label: String, value: String) { compose.onNodeWithText(label).performScrollTo().performTextReplacement(value) }
  private fun seleccionar(value: String) { compose.onAllNodesWithText("Seleccionar ▾")[0].performScrollTo().performClick(); click(value) }
  @Test fun flujoCompleto() {
+  val correo = "vendedor${System.currentTimeMillis()}@ejemplo.cl"
   foto("01_acceso")
-  click("Iniciar sesión de prueba")
+  click("Crear cuenta")
+  texto("Nombre completo", "Vendedor de prueba")
+  texto("Correo electrónico", correo)
+  texto("Contraseña", "Clave1234!")
+  texto("Confirmar contraseña", "Clave1234!")
+  compose.onNodeWithText("Confirmar contraseña").performImeAction()
+  compose.waitUntil(30000) { compose.onAllNodesWithText("Ir a iniciar sesión").fetchSemanticsNodes().isNotEmpty() }
+  click("Ir a iniciar sesión")
+  texto("Correo electrónico", correo)
+  texto("Contraseña", "Clave1234!")
+  compose.onNodeWithText("Contraseña").performImeAction()
+  compose.waitUntil(30000) { compose.onAllNodesWithText("Panel comercial").fetchSemanticsNodes().isNotEmpty() }
   foto("02_menu")
   click("Registrar, consultar y actualizar →")
   foto("03_lista_inicial")
