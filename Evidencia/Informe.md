@@ -162,3 +162,84 @@ Ejecución Android: pendiente (emulador incompatible con HAXM).
 No se generaron capturas de la aplicación ejecutándose.
 
 ![Verificación](12_verificacion.png)
+
+## Avance del módulo de usuarios — 20 de octubre de 2026
+
+Este avance prepara el modelo, la persistencia, el repositorio y la lógica de estado necesaria para registrar, consultar y administrar usuarios con roles `ADMINISTRADOR` y `VENDEDOR`. Las imágenes siguientes son capturas legibles del código fuente real; no corresponden a pantallas ejecutadas de la aplicación.
+
+### Modelo de usuario y roles
+
+Se creó `Role` como `enum class` y `UsuarioEntity` como entidad de Room. El usuario conserva identificador, nombre, correo, rol, estado activo y fechas de creación y actualización.
+
+![Modelo de usuario y roles](13_user_model.png)
+
+### DAO de usuarios
+
+`UsuarioDao` contiene inserción, búsqueda por identificador y correo, observación del listado, actualización y activación o desactivación. Los retornos `Long`, entidad nullable e `Int` permiten comprobar el resultado de cada operación.
+
+![DAO de usuarios](14_user_dao.png)
+
+### Repositorio de usuarios
+
+El repositorio centraliza las consultas, normaliza los correos, evita duplicados antes de insertar y transforma el número de filas actualizadas en un resultado booleano.
+
+![Consultas y creación en el repositorio](15_user_repository_queries.png)
+
+![Edición y activación en el repositorio](16_user_repository_updates.png)
+
+### UsuarioUiState independiente
+
+Siguiendo la regla de arquitectura, `UsuarioUiState` está en su propio archivo dentro de `viewmodel`. Contiene valores del formulario, errores por campo y estados de carga y guardado. Las contraseñas están en el estado del formulario y no en `UsuarioEntity`.
+
+![UiState independiente](17_user_uistate.png)
+
+### UsuarioViewModel
+
+El ViewModel expone `StateFlow`, procesa cambios de nombre, correo, contraseña y confirmación, y limpia los errores asociados cuando cambia cada campo.
+
+![Estado y eventos del ViewModel](18_user_viewmodel_state.png)
+
+![Correo y confirmación](19_user_viewmodel_events.png)
+
+El registro evita envíos duplicados, valida el formulario, consulta si el correo ya existe, crea la entidad y comunica éxito o error mediante el UiState.
+
+![Inicio del registro](20_user_save_start.png)
+
+![Control de duplicados y creación](21_user_duplicate_create.png)
+
+![Resultado del registro](22_user_save_result.png)
+
+Las validaciones cubren nombre obligatorio, longitud mínima, formato de correo, contraseña mínima y confirmación coincidente.
+
+![Validación de nombre y correo](23_user_validation_identity.png)
+
+![Validación de contraseña](24_user_validation_password.png)
+
+![Resultado de validaciones](25_user_validation_result.png)
+
+El ViewModel también permite cargar un usuario por identificador para una futura pantalla de consulta o edición y distingue un registro inexistente de un error inesperado.
+
+![Carga de usuario](26_user_load_start.png)
+
+![Resultado de carga y correo](27_user_load_result.png)
+
+### Estado real de integración con Room
+
+`AppDatabase` todavía contiene solamente `OportunidadEntity` y `OportunidadDao`. El módulo de usuarios no estará persistido hasta agregar `UsuarioEntity`, exponer `UsuarioDao` e implementar una migración de Room. Esta captura registra el estado actual sin presentarlo como completo.
+
+![Estado actual de AppDatabase](28_database_status.png)
+
+### Verificación realizada
+
+Después de incorporar el módulo de usuarios se ejecutaron `assembleDebug` y `testDebugUnitTest`. La compilación terminó correctamente y se generó el APK. Las pruebas existentes pasan, pero aún no existen pruebas específicas del módulo de usuarios.
+
+![Compilación del módulo de usuarios](29_build_status.png)
+
+### Trabajo pendiente
+
+- Registrar `UsuarioEntity` y `UsuarioDao` en `AppDatabase`.
+- Crear la migración de Room antes de modificar la versión de la base de datos.
+- Implementar credenciales sin almacenar contraseñas en texto plano.
+- Separar `RegisterUiState`, `LoginUiState` y los ViewModels correspondientes.
+- Crear las pantallas Compose de registro, inicio de sesión y administración, cada componente con `@Preview`.
+- Añadir autorización por rol y pruebas unitarias e instrumentadas.

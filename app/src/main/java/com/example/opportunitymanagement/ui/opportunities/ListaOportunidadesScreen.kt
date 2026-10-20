@@ -30,9 +30,9 @@ fun ListaOportunidadesScreen(
         floatingActionButton = { ExtendedFloatingActionButton(onClick = agregar) { Text("+ Nueva oportunidad") } }) { padding ->
         LazyColumn(
             Modifier
-             .fillMaxSize()
-             .padding(padding)
-             .padding(horizontal = 20.dp),
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(bottom = 96.dp)
         ) {
