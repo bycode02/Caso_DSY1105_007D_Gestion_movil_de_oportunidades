@@ -20,11 +20,13 @@ import androidx.navigation.compose.*
 import com.example.opportunitymanagement.ui.auth.LoginScreen
 import com.example.opportunitymanagement.ui.auth.RegisterScreen
 import com.example.opportunitymanagement.ui.opportunities.*
+import com.example.opportunitymanagement.ui.profile.ProfileScreen
 import com.example.opportunitymanagement.ui.theme.Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme
 import com.example.opportunitymanagement.utils.QrScanner
 import com.example.opportunitymanagement.viewmodel.LoginViewModel
 import com.example.opportunitymanagement.viewmodel.RegisterViewModel
 import com.example.opportunitymanagement.viewmodel.SessionUiState
+import com.example.opportunitymanagement.viewmodel.UsuarioViewModel
 
 private val RUTAS_PUBLICAS = setOf("login", "registro")
 
@@ -77,13 +79,20 @@ fun AppNavigation(session: SessionUiState, onLogout: () -> Unit) {
                 }
             )
         }
+
         composable("menu") {
             MenuScreen(
                 session.usuario?.nombre.orEmpty(),
                 { nav.navigate("lista") },
                 { nav.navigate("qr") },
-                onLogout
+                onLogout,
+                {nav.navigate("profile")}
             )
+        }
+        composable("profile") {
+            val vm: UsuarioViewModel = viewModel(factory = UsuarioViewModel.Factory)
+            val s by vm.uiState.collectAsStateWithLifecycle()
+            ProfileScreen(s, volver =  {nav.popBackStack() })
         }
         composable("lista") {
             val vm: ListaViewModel = viewModel(factory = ListaViewModel.Factory)
@@ -119,12 +128,18 @@ fun AppNavigation(session: SessionUiState, onLogout: () -> Unit) {
                 volver = { nav.popBackStack() }
             )
         }
-        composable("qr") { QrScreen({ nav.navigate("form/$it") }, { nav.popBackStack() }) }
+        composable("qr") {
+            QrScreen({ nav.navigate("form/$it") }, { nav.popBackStack() }) }
     }
 }
 
+
 @Composable
-fun MenuScreen(nombre: String, lista: () -> Unit, qr: () -> Unit, salir: () -> Unit) {
+fun MenuScreen(nombre: String,
+               lista: () -> Unit,
+               qr: () -> Unit,
+               salir: () -> Unit,
+               profile: () -> Unit) {
     Column(
         Modifier
          .fillMaxSize()
@@ -152,8 +167,12 @@ fun MenuScreen(nombre: String, lista: () -> Unit, qr: () -> Unit, salir: () -> U
         ) { Text("Consultar oportunidad por QR") }
         Text("Almacenamiento local", style = MaterialTheme.typography.bodySmall)
         TextButton(onClick = salir) { Text("Cerrar sesión") }
+        OutlinedButton(
+            onClick = profile,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Mi perfil")}
+        }
     }
-}
 
 fun idDesdeQr(texto: String): Long? =
     if (texto.startsWith("OPORTUNIDAD:")) texto.removePrefix("OPORTUNIDAD:").toLongOrNull()
@@ -207,7 +226,7 @@ fun QrScreen(abrir: (Long) -> Unit, volver: () -> Unit) {
 @Preview(showBackground = true)
 @Composable
 private fun MenuPreview() {
-    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme { MenuScreen("Vendedor de prueba", {}, {}, {}) }
+    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme { MenuScreen("Vendedor de prueba", {}, {}, {},{}) }
 }
 
 @Preview(showBackground = true)

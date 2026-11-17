@@ -2,8 +2,12 @@ package com.example.opportunitymanagement.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.opportunitymanagement.data.local.UsuarioEntity
 import com.example.opportunitymanagement.data.repository.UsuarioRepository
+import com.example.opportunitymanagement.di.appContainer
+import com.example.opportunitymanagement.domain.usecase.ObservarSesionUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -11,7 +15,8 @@ import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 
 class UsuarioViewModel(
-    private val repository: UsuarioRepository
+    private val repository: UsuarioRepository,
+    private val observarSesion: ObservarSesionUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(UsuarioUiState())
@@ -232,6 +237,14 @@ class UsuarioViewModel(
     companion object {
         private val EMAIL_REGEX =
             Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")
+        val Factory = viewModelFactory {
+            initializer { val c = appContainer()
+                UsuarioViewModel(c.usuarioRepository,c.observarSesionUseCase)
+            }
+        }
+
     }
+
+
 
 }

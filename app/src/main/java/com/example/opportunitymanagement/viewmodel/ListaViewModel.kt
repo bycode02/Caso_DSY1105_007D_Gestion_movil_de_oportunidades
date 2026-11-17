@@ -61,5 +61,6 @@ class ListaViewModel(
         val Factory = viewModelFactory {
             initializer { ListaViewModel(appContainer().oportunidadRepository) }
         }
+
     }
 }

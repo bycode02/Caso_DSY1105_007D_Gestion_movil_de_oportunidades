@@ -8,6 +8,7 @@ import com.example.opportunitymanagement.data.local.AppDatabase
 import com.example.opportunitymanagement.data.repository.AuthRepository
 import com.example.opportunitymanagement.data.repository.OportunidadRepository
 import com.example.opportunitymanagement.data.repository.SessionRepository
+import com.example.opportunitymanagement.data.repository.UsuarioRepository
 import com.example.opportunitymanagement.domain.usecase.CerrarSesionUseCase
 import com.example.opportunitymanagement.domain.usecase.LoginUseCase
 import com.example.opportunitymanagement.domain.usecase.ObservarSesionUseCase
@@ -20,6 +21,7 @@ interface AppContainer {
     val loginUseCase: LoginUseCase
     val observarSesionUseCase: ObservarSesionUseCase
     val cerrarSesionUseCase: CerrarSesionUseCase
+    val usuarioRepository: UsuarioRepository
 }
 
 /** Implementación de producción: todo se crea perezosamente y una sola vez. */
@@ -27,12 +29,14 @@ class DefaultAppContainer(context: Context) : AppContainer {
     private val appContext = context.applicationContext
     private val database: AppDatabase by lazy { AppDatabase.obtener(appContext) }
 
+
     override val oportunidadRepository by lazy { OportunidadRepository(database.oportunidades()) }
     override val authRepository by lazy { AuthRepository(database) }
     override val sessionRepository by lazy { SessionRepository(database.sesion()) }
     override val loginUseCase by lazy { LoginUseCase(authRepository, sessionRepository) }
     override val observarSesionUseCase by lazy { ObservarSesionUseCase(sessionRepository) }
     override val cerrarSesionUseCase by lazy { CerrarSesionUseCase(sessionRepository) }
+    override val  usuarioRepository by  lazy { UsuarioRepository(database.usuarios()) }
 }
 
 /** Acceso al contenedor desde los `initializer { }` de las factories de ViewModel. */
