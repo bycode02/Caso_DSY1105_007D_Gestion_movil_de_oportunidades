@@ -1,26 +1,38 @@
 Verificación: sesión persistente en Room + inyección manual (AppContainer)
-Fecha: 2026-11-17
+Fecha: 2026-11-17 · Rama: master (commit 1f71884) · Emulador: Pixel_7_API_34 (Android 14)
 
 == PRUEBAS EJECUTADAS ==
-Comando: gradlew :app:assembleDebug :app:assembleDebugAndroidTest :app:testDebugUnitTest
-Resultado: BUILD SUCCESSFUL
+Comando: gradlew clean :app:testDebugUnitTest :app:connectedDebugAndroidTest
+Resultado: BUILD SUCCESSFUL (exit 0)
 
-Pruebas unitarias (todas sin fallos):
+Pruebas unitarias: 32/32, sin fallos
   SessionViewModelTest            4/4  (verificando -> con/sin sesión, cerrar sesión, error de lectura)
-  OportunidadViewModelTest       10/10 (incluye nueva: sin sesión no guarda y pide iniciar sesión)
+  OportunidadViewModelTest       10/10 (incluye: sin sesión no guarda y pide iniciar sesión)
   ListaViewModelTest              6/6
   OportunidadRemoteRepositoryTest 6/6
   ValidacionTest                  5/5
   ExampleUnitTest                 1/1
 
+Pruebas instrumentadas en el emulador: 17/17, sin fallos
+  SessionRepositoryTest           4/4  (login guarda sesión, login fallido no la crea,
+                                        sesión única y cierre, cuenta desactivada la invalida)
+  AuthRepositoryTest              5/5
+  AuthScreensTest                 5/5
+  EntregaTest                     2/2  (flujo completo desde MainActivity, partiendo sin sesión)
+  ExampleInstrumentedTest         1/1
+
 Migración 4 -> 5: el SQL de MIGRATION_4_5 coincide con createSql de la tabla `sesion`
 y de su índice en app/schemas/.../AppDatabase/5.json (generado por Room).
 
-== COMPROBACIONES PENDIENTES (requieren dispositivo o emulador; no había ninguno conectado) ==
-- Pruebas instrumentadas compiladas pero NO ejecutadas:
-  SessionRepositoryTest (nueva), AuthScreensTest, EntregaTest, AuthRepositoryTest.
-  Ejecutar: gradlew :app:connectedDebugAndroidTest
-- Prueba manual: iniciar sesión, cerrar la app desde recientes y reabrir -> debe abrir el menú
-  con el nombre del usuario sin pasar por el login.
-- Prueba manual: "Cerrar sesión" -> vuelve al login; al reabrir la app sigue en el login.
-- Actualizar una instalación con base v4 para confirmar la migración en un dispositivo real.
+Prueba manual en el emulador (adb + uiautomator):
+  1. Registro de "Vendedor Sesion" (sesion.e2e@ejemplo.cl) e inicio de sesión
+     -> menú "Hola, Vendedor Sesion"                                 55_sesion_login_menu.png
+  2. am force-stop (proceso terminado, pidof vacío) + arranque en frío (LaunchState: COLD)
+     -> abre directo en el menú con el usuario precargado, sin login   56_sesion_reabrir_menu.png
+  3. "Cerrar sesión" -> login; force-stop + arranque en frío
+     -> abre en el login                                                57_sesion_cerrada_reabrir_login.png
+  logcat -b crash: sin fallos.
+
+== COMPROBACIONES PENDIENTES ==
+- Actualizar una instalación que tenga la base en v4 (sin desinstalar) para confirmar la migración
+  en un dispositivo. Las pruebas usan bases nuevas, no migradas.
