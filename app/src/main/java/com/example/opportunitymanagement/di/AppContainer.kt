@@ -6,7 +6,9 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import com.example.opportunitymanagement.OpportunityApplication
 import com.example.opportunitymanagement.data.local.AppDatabase
 import com.example.opportunitymanagement.data.repository.AuthRepository
+import com.example.opportunitymanagement.data.repository.ContactoRepository
 import com.example.opportunitymanagement.data.repository.OportunidadRepository
+import com.example.opportunitymanagement.data.repository.OrganizacionRepository
 import com.example.opportunitymanagement.data.repository.SessionRepository
 import com.example.opportunitymanagement.data.repository.UsuarioRepository
 import com.example.opportunitymanagement.domain.usecase.CerrarSesionUseCase
@@ -22,6 +24,8 @@ interface AppContainer {
     val observarSesionUseCase: ObservarSesionUseCase
     val cerrarSesionUseCase: CerrarSesionUseCase
     val usuarioRepository: UsuarioRepository
+    val organizacionRepository: OrganizacionRepository
+    val contactoRepository: ContactoRepository
 }
 
 /** Implementación de producción: todo se crea perezosamente y una sola vez. */
@@ -37,6 +41,8 @@ class DefaultAppContainer(context: Context) : AppContainer {
     override val observarSesionUseCase by lazy { ObservarSesionUseCase(sessionRepository) }
     override val cerrarSesionUseCase by lazy { CerrarSesionUseCase(sessionRepository) }
     override val  usuarioRepository by  lazy { UsuarioRepository(database.usuarios()) }
+    override val organizacionRepository by lazy { OrganizacionRepository(database.organizaciones()) }
+    override val contactoRepository by lazy { ContactoRepository(database.contacto()) }
 }
 
 /** Acceso al contenedor desde los `initializer { }` de las factories de ViewModel. */

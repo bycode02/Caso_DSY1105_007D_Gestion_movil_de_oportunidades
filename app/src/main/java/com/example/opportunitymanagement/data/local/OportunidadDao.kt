@@ -14,7 +14,7 @@ interface OportunidadDao {
         ORDER BY o.ultimaActualizacion DESC, o.id DESC
         """
     )
-    fun observarTodas(): Flow<List<OportunidadConResponsable>>
+     fun observarTodas(): Flow<List<OportunidadConResponsable>>
 
     @Query("SELECT * FROM oportunidades WHERE id = :id")
     suspend fun buscar(id: Long): OportunidadEntity?

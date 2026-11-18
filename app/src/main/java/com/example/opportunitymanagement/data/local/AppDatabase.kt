@@ -8,14 +8,19 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 @Database(entities = [OportunidadEntity::class,
                       UsuarioEntity::class,
                       CredentialEntity::class,
-                      SesionEntity::class],
-    version = 5,
+                      SesionEntity::class,
+                      OrganizacionEntity::class,
+                      ContactoEntity::class],
+    version = 6,
     exportSchema = true)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun oportunidades(): OportunidadDao
     abstract fun usuarios(): UsuarioDao
     abstract fun credenciales(): CredentialDao
     abstract fun sesion(): SesionDao
+    abstract fun organizaciones(): OrganizacionDao
+    abstract fun contacto(): ContactoDao
+
 
     companion object {
         /**
@@ -68,6 +73,37 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v6: organizaciones y sus contactos. Son tablas nuevas, así que no hay datos que copiar.
+         * `organizaciones` se crea primero porque `contactos` la referencia.
+         */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `organizaciones` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`nombre` TEXT NOT NULL, `tipo` TEXT NOT NULL, `rubro` TEXT NOT NULL, " +
+                        "`comuna` TEXT NOT NULL, `region` TEXT NOT NULL, " +
+                        "`sitioWeb` TEXT NOT NULL, `observaciones` TEXT NOT NULL)"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `contactos` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`nombre` TEXT NOT NULL, `organizacionId` INTEGER NOT NULL, " +
+                        "`cargo` TEXT NOT NULL, `area` TEXT NOT NULL, " +
+                        "`correo` TEXT NOT NULL, `telefono` TEXT NOT NULL, " +
+                        "`medioPreferente` TEXT NOT NULL, `estado` TEXT NOT NULL, " +
+                        "`fechaUltimoContacto` INTEGER, `observaciones` TEXT NOT NULL, " +
+                        "FOREIGN KEY(`organizacionId`) REFERENCES `organizaciones`(`id`) " +
+                        "ON UPDATE NO ACTION ON DELETE RESTRICT )"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_contactos_organizacionId` " +
+                        "ON `contactos` (`organizacionId`)"
+                )
+            }
+        }
+
         @Volatile
         private var instancia: AppDatabase? = null
         fun obtener(context: Context): AppDatabase = instancia ?: synchronized(this) {
@@ -75,7 +111,7 @@ abstract class AppDatabase : RoomDatabase() {
                 context.applicationContext,
                 AppDatabase::class.java,
                 "oportunidades.db"
-            ).addMigrations(MIGRATION_3_4, MIGRATION_4_5)
+            ).addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build().also { instancia = it }
         }
     }
