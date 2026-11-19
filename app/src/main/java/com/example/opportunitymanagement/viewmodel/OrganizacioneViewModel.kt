@@ -22,7 +22,7 @@ class OrganizacioneViewModel(
     val uiState: StateFlow<OrganizacionUiState> = _uiState.asStateFlow()
 
     private val puedeEditar : Boolean
-        get() = _uiState.value.let { !it.guardando && it.cargando && it.cargaFallida }
+        get() = _uiState.value.let { !it.guardando && !it.cargando && !it.cargaFallida }
 
 
     fun onNombreChange(value: String) {

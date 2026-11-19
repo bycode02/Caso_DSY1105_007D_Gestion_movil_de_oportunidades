@@ -3,7 +3,6 @@ package com.example.opportunitymanagement.ui.navigation
 import com.example.opportunitymanagement.viewmodel.ListaViewModel
 import com.example.opportunitymanagement.viewmodel.OportunidadViewModel
 import android.Manifest
-import android.R.attr.onClick
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
