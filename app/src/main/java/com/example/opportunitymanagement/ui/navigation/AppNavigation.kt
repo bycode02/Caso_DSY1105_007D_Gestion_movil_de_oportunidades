@@ -21,10 +21,12 @@ import com.example.opportunitymanagement.ui.auth.LoginScreen
 import com.example.opportunitymanagement.ui.auth.RegisterScreen
 import com.example.opportunitymanagement.ui.opportunities.*
 import com.example.opportunitymanagement.ui.organizaciones.OrganizacionFormScreen
+import com.example.opportunitymanagement.ui.organizaciones.OrganizacionListaScreen
 import com.example.opportunitymanagement.ui.profile.ProfileScreen
 import com.example.opportunitymanagement.ui.theme.Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme
 import com.example.opportunitymanagement.utils.QrScanner
 import com.example.opportunitymanagement.viewmodel.LoginViewModel
+import com.example.opportunitymanagement.viewmodel.OrganizacionListaViewModel
 import com.example.opportunitymanagement.viewmodel.OrganizacioneViewModel
 import com.example.opportunitymanagement.viewmodel.RegisterViewModel
 import com.example.opportunitymanagement.viewmodel.SessionUiState
@@ -86,8 +88,20 @@ fun AppNavigation(session: SessionUiState, onLogout: () -> Unit) {
             MenuScreen(
                 session.usuario?.nombre.orEmpty(),
                 { nav.navigate("lista") },
+                { nav.navigate("organizaciones") },
                 { nav.navigate("qr") },
                 {nav.navigate("profile")}
+            )
+        }
+        composable("organizaciones") {
+            val vm: OrganizacionListaViewModel = viewModel(factory = OrganizacionListaViewModel.Factory)
+            val s by vm.uiState.collectAsStateWithLifecycle()
+            OrganizacionListaScreen(
+                s,
+                agregar = { nav.navigate("organizacion/0") },
+                editar = { nav.navigate("organizacion/$it") },
+                eliminar = vm::eliminar,
+                volver = { nav.popBackStack() }
             )
         }
         composable("profile") {
@@ -161,6 +175,7 @@ fun AppNavigation(session: SessionUiState, onLogout: () -> Unit) {
 @Composable
 fun MenuScreen(nombre: String,
                lista: () -> Unit,
+               organizaciones: () -> Unit,
                qr: () -> Unit,
                profile: () -> Unit) {
     TopAppBar(title = {Text("Menu")},
@@ -184,6 +199,17 @@ fun MenuScreen(nombre: String,
                     "Oportunidades",
                     style = MaterialTheme.typography.titleLarge
                 ); Text("Registrar, consultar y actualizar →")
+            }
+        }
+        Card(
+            onClick = organizaciones,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(24.dp)) {
+                Text(
+                    "Organizaciones",
+                    style = MaterialTheme.typography.titleLarge
+                ); Text("Quién organiza los eventos y actividades →")
             }
         }
         OutlinedButton(
@@ -247,7 +273,7 @@ fun QrScreen(abrir: (Long) -> Unit, volver: () -> Unit) {
 @Preview(showBackground = true)
 @Composable
 private fun MenuPreview() {
-    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme { MenuScreen("Vendedor de prueba", {}, {}, {}) }
+    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme { MenuScreen("Vendedor de prueba", {}, {}, {}, {}) }
 }
 
 @Preview(showBackground = true)
