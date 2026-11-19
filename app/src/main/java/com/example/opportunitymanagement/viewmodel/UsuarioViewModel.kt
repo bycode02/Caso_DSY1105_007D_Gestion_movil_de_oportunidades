@@ -10,6 +10,7 @@ import com.example.opportunitymanagement.di.appContainer
 import com.example.opportunitymanagement.domain.usecase.ObservarSesionUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
@@ -19,8 +20,38 @@ class UsuarioViewModel(
     private val observarSesion: ObservarSesionUseCase
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(UsuarioUiState())
+    private val _uiState = MutableStateFlow(UsuarioUiState(isLoading = true))
     val uiState = _uiState.asStateFlow()
+
+    init {
+        // El perfil muestra al usuario de la sesión activa y se actualiza si la sesión cambia.
+        viewModelScope.launch {
+            observarSesion()
+                .catch {
+                    _uiState.update {
+                        it.copy(isLoading = false, errorMessage = "No se pudo cargar el perfil")
+                    }
+                }
+                .collect { user ->
+                    _uiState.update {
+                        if (user == null) {
+                            // Sin sesión: AppNavigation redirige al login.
+                            it.copy(isLoading = false)
+                        } else {
+                            it.copy(
+                                id = user.id,
+                                name = user.nombre,
+                                email = user.email,
+                                role = user.role,
+                                isActive = user.isActive,
+                                isLoading = false,
+                                errorMessage = null
+                            )
+                        }
+                    }
+                }
+        }
+    }
 
     fun onNameChange(value: String) {
         _uiState.update {

@@ -51,6 +51,7 @@ fun ProfileScreen(s: UsuarioUiState,
                 CircularProgressIndicator()
                 return@Column
             }
+            s.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             val rol = when(s.role){
                 Role.VENDEDOR -> "Vendedor"
                 Role.ADMINISTRADOR -> "Administrador"
