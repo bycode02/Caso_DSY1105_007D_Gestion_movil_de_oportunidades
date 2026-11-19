@@ -3,6 +3,7 @@ package com.example.opportunitymanagement.ui.navigation
 import com.example.opportunitymanagement.viewmodel.ListaViewModel
 import com.example.opportunitymanagement.viewmodel.OportunidadViewModel
 import android.Manifest
+import android.R.attr.onClick
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,10 +21,12 @@ import androidx.navigation.compose.*
 import com.example.opportunitymanagement.ui.auth.LoginScreen
 import com.example.opportunitymanagement.ui.auth.RegisterScreen
 import com.example.opportunitymanagement.ui.opportunities.*
+import com.example.opportunitymanagement.ui.organizaciones.OrganizacionFormScreen
 import com.example.opportunitymanagement.ui.profile.ProfileScreen
 import com.example.opportunitymanagement.ui.theme.Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme
 import com.example.opportunitymanagement.utils.QrScanner
 import com.example.opportunitymanagement.viewmodel.LoginViewModel
+import com.example.opportunitymanagement.viewmodel.OrganizacioneViewModel
 import com.example.opportunitymanagement.viewmodel.RegisterViewModel
 import com.example.opportunitymanagement.viewmodel.SessionUiState
 import com.example.opportunitymanagement.viewmodel.UsuarioViewModel
@@ -85,14 +88,13 @@ fun AppNavigation(session: SessionUiState, onLogout: () -> Unit) {
                 session.usuario?.nombre.orEmpty(),
                 { nav.navigate("lista") },
                 { nav.navigate("qr") },
-                onLogout,
                 {nav.navigate("profile")}
             )
         }
         composable("profile") {
             val vm: UsuarioViewModel = viewModel(factory = UsuarioViewModel.Factory)
             val s by vm.uiState.collectAsStateWithLifecycle()
-            ProfileScreen(s, volver =  {nav.popBackStack() })
+            ProfileScreen(s, volver = { nav.popBackStack() }, cerrarSesion = onLogout)
         }
         composable("lista") {
             val vm: ListaViewModel = viewModel(factory = ListaViewModel.Factory)
@@ -103,6 +105,27 @@ fun AppNavigation(session: SessionUiState, onLogout: () -> Unit) {
                 { nav.navigate("form/$it") },
                 vm::eliminar,
                 { nav.popBackStack() })
+        }
+        composable("organizacion/{id}") { entry ->
+            val vm: OrganizacioneViewModel = viewModel(factory = OrganizacioneViewModel.Factory)
+            val s by vm.uiState.collectAsStateWithLifecycle()
+            LaunchedEffect(Unit) {
+                vm.cargar(entry.arguments?.getString("id")?.toLongOrNull() ?: 0)
+            }
+            LaunchedEffect(s.guardadoExitosamente) { if (s.guardadoExitosamente) nav.popBackStack() }
+            OrganizacionFormScreen(
+                state = s,
+                onNombreChange = vm::onNombreChange,
+                onTipoChange = vm::onTipoChange,
+                onRubroChange = vm::onRubroChange,
+                onComunaChange = vm::onComunaChange,
+                onRegionChange = vm::onRegionChange,
+                onSitioWebChange = vm::onSitioWebChange,
+                onObservacionesChange = vm::onObservacionesChange,
+                onGuardar = vm::guardar,
+                onVolver = { nav.popBackStack() },
+
+            )
         }
         composable("form/{id}") { entry ->
             val vm: OportunidadViewModel = viewModel(factory = OportunidadViewModel.Factory)
@@ -131,19 +154,22 @@ fun AppNavigation(session: SessionUiState, onLogout: () -> Unit) {
         composable("qr") {
             QrScreen({ nav.navigate("form/$it") }, { nav.popBackStack() }) }
     }
+
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MenuScreen(nombre: String,
                lista: () -> Unit,
                qr: () -> Unit,
-               salir: () -> Unit,
                profile: () -> Unit) {
+    TopAppBar(title = {Text("Menu")},
+        actions = { TextButton(onClick = profile ) {Text("Perfil") }})
     Column(
         Modifier
-         .fillMaxSize()
-         .padding(24.dp),
+            .fillMaxSize()
+            .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         Spacer(Modifier.height(24.dp))
@@ -166,11 +192,7 @@ fun MenuScreen(nombre: String,
             modifier = Modifier.fillMaxWidth()
         ) { Text("Consultar oportunidad por QR") }
         Text("Almacenamiento local", style = MaterialTheme.typography.bodySmall)
-        TextButton(onClick = salir) { Text("Cerrar sesión") }
-        OutlinedButton(
-            onClick = profile,
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("Mi perfil")}
+
         }
     }
 
@@ -196,8 +218,8 @@ fun QrScreen(abrir: (Long) -> Unit, volver: () -> Unit) {
     }
     Column(
         Modifier
-         .fillMaxSize()
-         .padding(24.dp),
+            .fillMaxSize()
+            .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         TextButton(onClick = volver) { Text("Volver") }
@@ -210,8 +232,8 @@ fun QrScreen(abrir: (Long) -> Unit, volver: () -> Unit) {
             QrScanner(
                 onQrCodeScanned = { resultado = it },
                 modifier = Modifier
-                 .fillMaxWidth()
-                 .height(320.dp),
+                    .fillMaxWidth()
+                    .height(320.dp),
                 onError = { error = it })
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         } else {
@@ -226,7 +248,7 @@ fun QrScreen(abrir: (Long) -> Unit, volver: () -> Unit) {
 @Preview(showBackground = true)
 @Composable
 private fun MenuPreview() {
-    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme { MenuScreen("Vendedor de prueba", {}, {}, {},{}) }
+    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme { MenuScreen("Vendedor de prueba", {}, {}, {}) }
 }
 
 @Preview(showBackground = true)

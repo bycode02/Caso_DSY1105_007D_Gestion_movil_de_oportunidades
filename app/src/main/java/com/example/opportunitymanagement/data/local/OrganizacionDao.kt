@@ -12,7 +12,7 @@ interface OrganizacionDao {
     @Query("SELECT * from organizaciones order by nombre asc")
      fun obtenerTodas(): Flow<List<OrganizacionEntity>>
     @Query("SELECT * from organizaciones where id= :id LIMIT 1")
-    suspend fun encontrarPorId(id : Long): OrganizacionEntity
+    suspend fun encontrarPorId(id : Long): OrganizacionEntity?
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(org : OrganizacionEntity): Long
     @Update

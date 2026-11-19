@@ -14,6 +14,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -31,7 +32,8 @@ import com.example.opportunitymanagement.viewmodel.UsuarioUiState
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(s: UsuarioUiState,
-                  volver: () -> Unit) {
+                  volver: () -> Unit,
+                  cerrarSesion: () -> Unit) {
     Scaffold(topBar = {
         TopAppBar(
             title = { Text("Mi perfil") },
@@ -59,6 +61,10 @@ fun ProfileScreen(s: UsuarioUiState,
                 email = s.email,
                 activo = s.isActive
             )
+            OutlinedButton(
+                onClick = cerrarSesion,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Cerrar sesión") }
         }
     }
 }
@@ -122,7 +128,8 @@ private fun ProfilePreview(
                 role = Role.VENDEDOR,
                 isActive =  true
             ),
-            volver = {}
+            volver = {},
+            cerrarSesion = {}
         )
     }
 }
@@ -131,7 +138,7 @@ private fun ProfilePreview(
 @Composable
 private fun ProfileCargandoPreview() {
     Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme {
-        ProfileScreen(UsuarioUiState(isLoading = true), volver = {})
+        ProfileScreen(UsuarioUiState(isLoading = true), volver = {}, cerrarSesion = {})
     }
 }
 
