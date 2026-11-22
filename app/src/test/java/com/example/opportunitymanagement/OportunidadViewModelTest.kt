@@ -3,6 +3,7 @@ import com.example.opportunitymanagement.viewmodel.OportunidadValidator
 import com.example.opportunitymanagement.viewmodel.OportunidadViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.opportunitymanagement.data.local.*
+import com.example.opportunitymanagement.data.repository.EventoRepository
 import com.example.opportunitymanagement.data.repository.OportunidadRepository
 import com.example.opportunitymanagement.data.repository.SessionRepository
 import com.example.opportunitymanagement.domain.usecase.ObservarSesionUseCase
@@ -19,12 +20,15 @@ class OportunidadViewModelTest {
  private lateinit var dao: FakeDao
  private lateinit var vm: OportunidadViewModel
  private lateinit var sesion: FakeSesionDao
- @Before fun setup() { Dispatchers.setMain(dispatcher); dao = FakeDao(); sesion = FakeSesionDao(USUARIO_SESION); vm = OportunidadViewModel(OportunidadRepository(dao), OportunidadValidator(), ObservarSesionUseCase(SessionRepository(sesion))) }
+ private lateinit var organizaciones: FakeOrganizacionDao
+ private lateinit var eventos: FakeEventoDao
+ @Before fun setup() { Dispatchers.setMain(dispatcher); dao = FakeDao(); sesion = FakeSesionDao(USUARIO_SESION); organizaciones = FakeOrganizacionDao(); organizaciones.items.value = listOf(organizacion(3)); eventos = FakeEventoDao(organizaciones); eventos.items.value = listOf(evento(7, organizacionId = 3)); vm = OportunidadViewModel(OportunidadRepository(dao), OportunidadValidator(), ObservarSesionUseCase(SessionRepository(sesion)), EventoRepository(eventos)) }
  @After fun cleanup() { vm.viewModelScope.cancel(); Dispatchers.resetMain() }
  private fun completar() {
   vm.onNombreChange("  Feria  "); vm.onTipoChange("Feria empresarial")
   vm.onDescripcionChange("Prueba"); vm.onFuenteChange("Referencia")
   vm.onPrioridadChange("Alta"); vm.onPotencialChange("Alto")
+  vm.onEventoChange(7)
  }
  @Test fun invalidoNoSeGuarda() = runTest(dispatcher) {
   vm.guardar(); advanceUntilIdle()
@@ -40,7 +44,7 @@ class OportunidadViewModelTest {
   assertTrue(vm.uiState.value.guardadoExitosamente)
  }
  @Test fun editarConservaFechaYRegistro() = runTest(dispatcher) {
-  dao.items.value = listOf(OportunidadEntity(7, "Anterior", "Feria empresarial", "Desc", "Fuente", "Alta", "Alto", fechaDeteccion=123))
+  dao.items.value = listOf(OportunidadEntity(7, "Anterior", "Feria empresarial", "Desc", "Fuente", "Alta", "Alto", fechaDeteccion=123, eventoId = 7))
   vm.cargar(7); advanceUntilIdle(); vm.onNombreChange("Modificada"); vm.guardar(); advanceUntilIdle()
   assertEquals(1, dao.items.value.size); assertEquals(123L, dao.items.value.single().fechaDeteccion)
   assertEquals("Modificada", dao.items.value.single().nombre)
@@ -50,12 +54,12 @@ class OportunidadViewModelTest {
   assertEquals(USUARIO_SESION, dao.items.value.single().responsableId)
  }
  @Test fun editarConservaElResponsableOriginal() = runTest(dispatcher) {
-  dao.items.value = listOf(OportunidadEntity(7, "Anterior", "Feria empresarial", "Desc", "Fuente", "Alta", "Alto", responsableId = 5))
+  dao.items.value = listOf(OportunidadEntity(7, "Anterior", "Feria empresarial", "Desc", "Fuente", "Alta", "Alto", responsableId = 5, eventoId = 7))
   vm.cargar(7); advanceUntilIdle(); vm.onNombreChange("Modificada"); vm.guardar(); advanceUntilIdle()
   assertEquals(5L, dao.items.value.single().responsableId)
  }
  @Test fun editarUnaSinResponsableLaAsignaAlUsuarioDeLaSesion() = runTest(dispatcher) {
-  dao.items.value = listOf(OportunidadEntity(7, "Antigua", "Feria empresarial", "Desc", "Fuente", "Alta", "Alto", responsableId = null))
+  dao.items.value = listOf(OportunidadEntity(7, "Antigua", "Feria empresarial", "Desc", "Fuente", "Alta", "Alto", responsableId = null, eventoId = 7))
   vm.cargar(7); advanceUntilIdle(); vm.guardar(); advanceUntilIdle()
   assertEquals(USUARIO_SESION, dao.items.value.single().responsableId)
  }
@@ -74,6 +78,29 @@ class OportunidadViewModelTest {
  @Test fun identificadorInexistenteNoCreaRegistro() = runTest(dispatcher) {
   vm.cargar(99); advanceUntilIdle(); completar(); vm.guardar(); advanceUntilIdle()
   assertTrue(vm.uiState.value.cargaFallida); assertEquals(0, dao.guardados)
+ }
+ @Test fun losEventosLleganAlDesplegable() = runTest(dispatcher) {
+  advanceUntilIdle()
+  assertEquals(listOf("Feria de beneficios"), vm.uiState.value.eventos.map { it.evento.nombre })
+ }
+ @Test fun guardaElEventoElegido() = runTest(dispatcher) {
+  completar(); vm.onEventoChange(7); vm.guardar(); advanceUntilIdle()
+  assertEquals(7L, dao.items.value.single().eventoId)
+ }
+ @Test fun sinEventoNoSeGuardaYMarcaElError() = runTest(dispatcher) {
+  completar(); vm.onEventoChange(null); vm.guardar(); advanceUntilIdle()
+  assertEquals(0, dao.guardados); assertNotNull(vm.uiState.value.eventoError)
+ }
+ @Test fun elegirEventoLimpiaElError() = runTest(dispatcher) {
+  completar(); vm.onEventoChange(null); vm.guardar(); advanceUntilIdle()
+  vm.onEventoChange(7)
+  assertNull(vm.uiState.value.eventoError)
+ }
+ @Test fun cargarConservaElEventoYLaListaDeEventos() = runTest(dispatcher) {
+  dao.items.value = listOf(OportunidadEntity(7, "Anterior", "Feria empresarial", "Desc", "Fuente", "Alta", "Alto", eventoId = 7))
+  advanceUntilIdle(); vm.cargar(7); advanceUntilIdle()
+  assertEquals(7L, vm.uiState.value.eventoId)
+  assertEquals(1, vm.uiState.value.eventos.size)
  }
  private class FakeDao : OportunidadDao {
   val items = MutableStateFlow<List<OportunidadEntity>>(emptyList())

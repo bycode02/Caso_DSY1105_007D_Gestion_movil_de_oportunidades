@@ -5,12 +5,15 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface OportunidadDao {
-    // LEFT JOIN para que también aparezcan las oportunidades sin responsable.
+    // LEFT JOIN para que también aparezcan las oportunidades sin responsable o sin evento.
     @Query(
         """
-        SELECT o.*, u.nombre AS responsableNombre
+        SELECT o.*, u.nombre AS responsableNombre,
+               e.nombre AS eventoNombre, org.nombre AS organizacionNombre
         FROM oportunidades o
         LEFT JOIN usuario u ON u.id = o.responsableId
+        LEFT JOIN eventos e ON e.id = o.eventoId
+        LEFT JOIN organizaciones org ON org.id = e.organizacionId
         ORDER BY o.ultimaActualizacion DESC, o.id DESC
         """
     )

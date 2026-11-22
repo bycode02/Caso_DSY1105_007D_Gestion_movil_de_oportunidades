@@ -7,14 +7,23 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "oportunidades",
-    foreignKeys = [ForeignKey(
-        entity = UsuarioEntity::class,
-        parentColumns = ["id"],
-        childColumns = ["responsableId"],
-        // No permite borrar un usuario que todavía es responsable de oportunidades.
-        onDelete = ForeignKey.RESTRICT
-    )],
-    indices = [Index("responsableId")]
+    foreignKeys = [
+        ForeignKey(
+            entity = UsuarioEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["responsableId"],
+            // No permite borrar un usuario que todavía es responsable de oportunidades.
+            onDelete = ForeignKey.RESTRICT
+        ),
+        ForeignKey(
+            entity = EventoEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["eventoId"],
+            // No permite borrar un evento que todavía tiene oportunidades.
+            onDelete = ForeignKey.RESTRICT
+        )
+    ],
+    indices = [Index("responsableId"), Index("eventoId")]
 )
 data class OportunidadEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -25,5 +34,7 @@ data class OportunidadEntity(
     val responsableId: Long? = null,
     val fechaDeteccion: Long = System.currentTimeMillis(),
     val ultimaActualizacion: Long = System.currentTimeMillis(),
-    val referenciaGeografica: String = ""
+    val referenciaGeografica: String = "",
+    // Evento al que se asocia la oportunidad (opcional, según el caso: "puede asociarse").
+    val eventoId: Long? = null
 )

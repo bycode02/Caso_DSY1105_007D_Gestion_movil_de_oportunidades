@@ -210,7 +210,7 @@ private fun OrganizacionListaConMensajePreview() {
             OrganizacionListaUiState(
                 items = listOf(conContacto),
                 cargando = false,
-                mensaje = "No se puede eliminar: la organización tiene contactos. Elimínalos primero."
+                mensaje = "No se puede eliminar: la organización tiene contactos o eventos asociados. Elimínalos primero."
             ),
             {}, {}, {}, {}
         )

@@ -1,5 +1,7 @@
 package com.example.opportunitymanagement.viewmodel
 
+import com.example.opportunitymanagement.data.local.EventoConOrganizacion
+
 data class OportunidadUiState(
     val id: Long = 0,
     val nombre: String = "",
@@ -14,6 +16,9 @@ data class OportunidadUiState(
     val fechaDeteccion: Long? = null,
     // Responsable guardado en la oportunidad; null mientras sea nueva.
     val responsableId: Long? = null,
+    // Evento asociado (opcional) y opciones del desplegable de eventos.
+    val eventoId: Long? = null,
+    val eventos: List<EventoConOrganizacion> = emptyList(),
     val eliminando: Boolean = false,
 
     val nombreError: String? = null,
@@ -23,6 +28,7 @@ data class OportunidadUiState(
     val prioridadError: String? = null,
     val potencialError: String? = null,
     val estadoError: String? = null,
+    val eventoError: String? = null,
 
 
     val cargando: Boolean = false,

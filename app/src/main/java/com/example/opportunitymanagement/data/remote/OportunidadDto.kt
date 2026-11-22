@@ -17,7 +17,8 @@ data class OportunidadDto(
     val responsableId: Long? = null,
     val fechaDeteccion: Long? = null,
     val ultimaActualizacion: Long? = null,
-    val referenciaGeografica: String? = null
+    val referenciaGeografica: String? = null,
+    val eventoId: Long? = null
 )
 
 fun OportunidadEntity.toDto() = OportunidadDto(
@@ -33,7 +34,8 @@ fun OportunidadEntity.toDto() = OportunidadDto(
     responsableId = responsableId,
     fechaDeteccion = fechaDeteccion,
     ultimaActualizacion = ultimaActualizacion,
-    referenciaGeografica = referenciaGeografica
+    referenciaGeografica = referenciaGeografica,
+    eventoId = eventoId
 )
 
 fun OportunidadDto.toEntity(): OportunidadEntity {
@@ -51,6 +53,7 @@ fun OportunidadDto.toEntity(): OportunidadEntity {
         responsableId = responsableId,
         fechaDeteccion = fechaDeteccion ?: ahora,
         ultimaActualizacion = ultimaActualizacion ?: ahora,
-        referenciaGeografica = referenciaGeografica.orEmpty()
+        referenciaGeografica = referenciaGeografica.orEmpty(),
+        eventoId = eventoId
     )
 }

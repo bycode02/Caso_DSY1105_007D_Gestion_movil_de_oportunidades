@@ -2,6 +2,7 @@ package com.example.opportunitymanagement
 
 import androidx.lifecycle.viewModelScope
 import com.example.opportunitymanagement.data.repository.ContactoRepository
+import com.example.opportunitymanagement.data.repository.EventoRepository
 import com.example.opportunitymanagement.data.repository.OrganizacionRepository
 import com.example.opportunitymanagement.viewmodel.OrganizacionValidator
 import com.example.opportunitymanagement.viewmodel.OrganizacionViewModel
@@ -26,15 +27,18 @@ class OrganizacionViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private lateinit var organizaciones: FakeOrganizacionDao
     private lateinit var contactos: FakeContactoDao
+    private lateinit var eventos: FakeEventoDao
     private lateinit var vm: OrganizacionViewModel
 
     @Before fun setup() {
         Dispatchers.setMain(dispatcher)
         organizaciones = FakeOrganizacionDao()
         contactos = FakeContactoDao(organizaciones)
+        eventos = FakeEventoDao(organizaciones)
         vm = OrganizacionViewModel(
             OrganizacionRepository(organizaciones),
             ContactoRepository(contactos),
+            EventoRepository(eventos),
             OrganizacionValidator()
         )
     }
@@ -75,6 +79,13 @@ class OrganizacionViewModelTest {
         contactos.items.value = contactos.items.value + contacto(12, organizacionId = 3, nombre = "Ana Pérez")
         advanceUntilIdle()
         assertEquals(listOf("Ana Pérez", "Laura Soto"), vm.uiState.value.contactos.map { it.nombre })
+    }
+
+    @Test fun losEventosDeLaOrganizacionAparecenSolos() = runTest(dispatcher) {
+        organizaciones.items.value = listOf(organizacion(3), organizacion(4, "Empresa Demo SpA"))
+        eventos.items.value = listOf(evento(7, organizacionId = 3), evento(8, organizacionId = 4, nombre = "Otra feria"))
+        vm.cargar(3); advanceUntilIdle()
+        assertEquals(listOf("Feria de beneficios"), vm.uiState.value.eventos.map { it.nombre })
     }
 
     @Test fun recienCreadaAvisaQueFaltanContactos() = runTest(dispatcher) {

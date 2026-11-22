@@ -7,6 +7,7 @@ import com.example.opportunitymanagement.OpportunityApplication
 import com.example.opportunitymanagement.data.local.AppDatabase
 import com.example.opportunitymanagement.data.repository.AuthRepository
 import com.example.opportunitymanagement.data.repository.ContactoRepository
+import com.example.opportunitymanagement.data.repository.EventoRepository
 import com.example.opportunitymanagement.data.repository.OportunidadRepository
 import com.example.opportunitymanagement.data.repository.OrganizacionRepository
 import com.example.opportunitymanagement.data.repository.SessionRepository
@@ -26,6 +27,7 @@ interface AppContainer {
     val usuarioRepository: UsuarioRepository
     val organizacionRepository: OrganizacionRepository
     val contactoRepository: ContactoRepository
+    val eventoRepository: EventoRepository
 }
 
 /** Implementación de producción: todo se crea perezosamente y una sola vez. */
@@ -43,6 +45,7 @@ class DefaultAppContainer(context: Context) : AppContainer {
     override val  usuarioRepository by  lazy { UsuarioRepository(database.usuarios()) }
     override val organizacionRepository by lazy { OrganizacionRepository(database.organizaciones()) }
     override val contactoRepository by lazy { ContactoRepository(database.contacto()) }
+    override val eventoRepository by lazy { EventoRepository(database.eventos()) }
 }
 
 /** Acceso al contenedor desde los `initializer { }` de las factories de ViewModel. */

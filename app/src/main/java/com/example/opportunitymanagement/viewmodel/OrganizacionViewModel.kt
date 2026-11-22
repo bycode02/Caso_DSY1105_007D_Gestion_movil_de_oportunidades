@@ -6,6 +6,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.opportunitymanagement.data.local.OrganizacionEntity
 import com.example.opportunitymanagement.data.repository.ContactoRepository
+import com.example.opportunitymanagement.data.repository.EventoRepository
 import com.example.opportunitymanagement.data.repository.OrganizacionRepository
 import com.example.opportunitymanagement.di.appContainer
 import kotlinx.coroutines.CancellationException
@@ -20,6 +21,7 @@ import kotlinx.coroutines.launch
 class OrganizacionViewModel(
     private val repository: OrganizacionRepository,
     private val contactoRepository: ContactoRepository,
+    private val eventoRepository: EventoRepository,
     private val validator: OrganizacionValidator
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(OrganizacionUiState())
@@ -29,8 +31,9 @@ class OrganizacionViewModel(
     // llamar a cargar(); así no se pierden los cambios sin guardar ni el id recién creado.
     private var idCargado: Long? = null
 
-    // Observación de los contactos de la organización abierta.
+    // Observación de los contactos y eventos de la organización abierta.
     private var observacionContactos: Job? = null
+    private var observacionEventos: Job? = null
 
     private val puedeEditar: Boolean
         get() = _uiState.value.let { !it.guardando && !it.cargando && !it.cargaFallida }
@@ -98,7 +101,7 @@ class OrganizacionViewModel(
                     sitioWeb = organizacion.sitioWeb,
                     observaciones = organizacion.observaciones
                 )
-                observarContactos(organizacion.id)
+                observarContactosYEventos(organizacion.id)
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
@@ -113,8 +116,14 @@ class OrganizacionViewModel(
         }
     }
 
-    // La lista se actualiza sola cuando se agrega, edita o borra un contacto (Flow de Room).
-    private fun observarContactos(organizacionId: Long) {
+    // Las listas se actualizan solas cuando se agrega, edita o borra un contacto o evento (Flow de Room).
+    private fun observarContactosYEventos(organizacionId: Long) {
+        observacionEventos?.cancel()
+        observacionEventos = viewModelScope.launch {
+            eventoRepository.eventosDeOrganizacion(organizacionId)
+                .catch { _uiState.update { it.copy(mensaje = "No se pudieron cargar los eventos") } }
+                .collect { lista -> _uiState.update { it.copy(eventos = lista) } }
+        }
         observacionContactos?.cancel()
         observacionContactos = viewModelScope.launch {
             contactoRepository.contactosDeOrganizacion(organizacionId)
@@ -185,7 +194,7 @@ class OrganizacionViewModel(
                                 "la persona con quien gestionarás sus eventos."
                         )
                     }
-                    observarContactos(idGuardado)
+                    observarContactosYEventos(idGuardado)
                 } else {
                     // Edición: vuelve a la lista.
                     _uiState.update { it.copy(guardando = false, guardadoExitosamente = true) }
@@ -213,6 +222,7 @@ class OrganizacionViewModel(
                 OrganizacionViewModel(
                     container.organizacionRepository,
                     container.contactoRepository,
+                    container.eventoRepository,
                     OrganizacionValidator()
                 )
             }

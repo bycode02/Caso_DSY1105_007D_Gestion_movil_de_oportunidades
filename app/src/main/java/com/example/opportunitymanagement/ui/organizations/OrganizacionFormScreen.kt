@@ -36,6 +36,8 @@ import com.example.opportunitymanagement.ui.opportunities.CampoSeleccion
 import com.example.opportunitymanagement.ui.opportunities.CampoTexto
 import com.example.opportunitymanagement.ui.theme.Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme
 import com.example.opportunitymanagement.data.local.ContactoEntity
+import com.example.opportunitymanagement.data.local.EventoEntity
+import com.example.opportunitymanagement.utils.FormatoFecha
 import com.example.opportunitymanagement.viewmodel.Opciones
 import com.example.opportunitymanagement.viewmodel.OrganizacionUiState
 
@@ -54,6 +56,8 @@ fun OrganizacionFormScreen(
     onVolver: () -> Unit,
     onAgregarContacto: () -> Unit,
     onAbrirContacto: (Long) -> Unit,
+    onAgregarEvento: () -> Unit,
+    onAbrirEvento: (Long) -> Unit,
     modifier: Modifier = Modifier
 
 ){
@@ -126,6 +130,12 @@ fun OrganizacionFormScreen(
                 onAgregarContacto = onAgregarContacto,
                 onAbrirContacto = onAbrirContacto
             )
+            SeccionEventos(
+                eventos = state.eventos,
+                enabled = !state.guardando,
+                onAgregarEvento = onAgregarEvento,
+                onAbrirEvento = onAbrirEvento
+            )
         }
         TextButton(
             onClick = salir,
@@ -183,6 +193,53 @@ fun SeccionContactos(
                 enabled = enabled,
                 modifier = Modifier.fillMaxWidth()
             ) { Text("+ Agregar contacto") }
+        }
+    }
+}
+
+/** Eventos que organiza la organización ("Eventos relacionados" del caso). */
+@Composable
+fun SeccionEventos(
+    eventos: List<EventoEntity>,
+    enabled: Boolean,
+    onAgregarEvento: () -> Unit,
+    onAbrirEvento: (Long) -> Unit
+) {
+    SeccionFormulario("EVENTOS (${eventos.size})") {
+        if (eventos.isEmpty()) {
+            Text(
+                "Esta organización aún no tiene eventos registrados.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        eventos.forEach { evento ->
+            EventoItem(evento, enabled) { onAbrirEvento(evento.id) }
+        }
+        OutlinedButton(
+            onClick = onAgregarEvento,
+            enabled = enabled,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("+ Agregar evento") }
+    }
+}
+
+@Composable
+fun EventoItem(evento: EventoEntity, enabled: Boolean, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        enabled = enabled,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(evento.nombre, style = MaterialTheme.typography.titleMedium)
+            Text(
+                "${FormatoFecha.fecha(evento.fechaInicio)} · " +
+                    FormatoFecha.horario(evento.horaInicio, evento.horaTermino),
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(evento.tipo, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -271,7 +328,7 @@ val ejemplo = OrganizacionUiState(
 @Composable
 fun OrganizacionNuevaPreview() {
     Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme(dynamicColor = false) {
-        OrganizacionFormScreen(OrganizacionUiState(), {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
+        OrganizacionFormScreen(OrganizacionUiState(), {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
     }
 }
 
@@ -289,7 +346,7 @@ fun OrganizacionErroresPreview() {
                 regionError = "Indica la región",
                 sitioWebError = "Ingresa un sitio web válido, por ejemplo www.ejemplo.cl"
             ),
-            {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}
+            {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}
         )
     }
 }
@@ -298,7 +355,7 @@ fun OrganizacionErroresPreview() {
 @Composable
 private fun OrganizacionGuardandoPreview() {
     Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme(dynamicColor = false) {
-        OrganizacionFormScreen(ejemplo.copy(guardando = true), {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
+        OrganizacionFormScreen(ejemplo.copy(guardando = true), {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
     }
 }
 
@@ -308,7 +365,7 @@ private fun OrganizacionNoEncontradaPreview() {
     Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme(dynamicColor = false) {
         OrganizacionFormScreen(
             OrganizacionUiState(id = 99, cargaFallida = true, mensaje = "No existe una organización con ese código"),
-            {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}
+            {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}
         )
     }
 }
@@ -317,7 +374,7 @@ private fun OrganizacionNoEncontradaPreview() {
 @Composable
 fun OrganizacionOscuroPreview() {
     Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme(darkTheme = true, dynamicColor = false) {
-        OrganizacionFormScreen(ejemplo, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
+        OrganizacionFormScreen(ejemplo, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
     }
 }
 
@@ -359,7 +416,7 @@ private fun OrganizacionConContactosPreview() {
                 contactosCargados = true,
                 aviso = "Organización guardada. Ahora agrega al menos un contacto: la persona con quien gestionarás sus eventos."
             ),
-            {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}
+            {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}
         )
     }
 }
@@ -389,7 +446,7 @@ private fun OrganizacionSinContactosPreview() {
                 contactosCargados = true,
                 aviso = "Organización guardada. Ahora agrega al menos un contacto: la persona con quien gestionarás sus eventos."
             ),
-            {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}
+            {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}
         )
     }
 }
@@ -399,5 +456,39 @@ private fun OrganizacionSinContactosPreview() {
 private fun DialogoSinContactosPreview() {
     Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme(dynamicColor = false) {
         DialogoSinContactos(onAgregarContacto = {}, onMasTarde = {}, onCerrar = {})
+    }
+}
+
+@Preview(name = "Sección de eventos", showBackground = true)
+@Composable
+private fun SeccionEventosPreview() {
+    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme(dynamicColor = false) {
+        SeccionEventos(
+            listOf(
+                EventoEntity(
+                    id = 7, nombre = "Feria de beneficios 2027", tipo = "Feria institucional",
+                    fechaInicio = 1_805_068_800_000, horaInicio = 9 * 60, horaTermino = 18 * 60,
+                    comuna = "Puente Alto", region = "Metropolitana", organizacionId = 3,
+                    publicoEsperado = "Trabajadores y familias"
+                )
+            ),
+            enabled = true, onAgregarEvento = {}, onAbrirEvento = {}
+        )
+    }
+}
+
+@Preview(name = "Evento", showBackground = true)
+@Composable
+private fun EventoItemPreview() {
+    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme(dynamicColor = false) {
+        EventoItem(
+            EventoEntity(
+                id = 7, nombre = "Feria de beneficios 2027", tipo = "Feria institucional",
+                fechaInicio = 1_805_068_800_000, horaInicio = 9 * 60, horaTermino = 18 * 60,
+                comuna = "Puente Alto", region = "Metropolitana", organizacionId = 3,
+                publicoEsperado = "Trabajadores y familias"
+            ),
+            enabled = true
+        ) {}
     }
 }

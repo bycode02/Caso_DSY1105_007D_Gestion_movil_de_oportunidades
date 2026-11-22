@@ -119,6 +119,12 @@ fun OportunidadCard(
                 "Responsable: ${item.responsableNombre ?: "Sin asignar"}",
                 style = MaterialTheme.typography.bodyMedium
             )
+            item.eventoNombre?.let { evento ->
+                Text(
+                    "Evento: $evento · ${item.organizacionNombre.orEmpty()}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,

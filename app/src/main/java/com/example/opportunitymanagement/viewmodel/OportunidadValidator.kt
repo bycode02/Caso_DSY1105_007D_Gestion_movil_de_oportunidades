@@ -41,6 +41,12 @@ class OportunidadValidator {
         else -> null
     }
 
+    // Regla del equipo: toda oportunidad debe estar asociada a un evento.
+    fun eventoError(eventoId: Long?): String? = when (eventoId) {
+        null -> "Selecciona el evento de la oportunidad"
+        else -> null
+    }
+
     fun validar(state: OportunidadUiState): OportunidadUiState = state.copy(
         nombreError = nombreError(state.nombre),
         tipoError = tipoError(state.tipo),
@@ -48,7 +54,8 @@ class OportunidadValidator {
         fuenteError = fuenteError(state.fuente),
         prioridadError = prioridadError(state.prioridad),
         potencialError = potencialError(state.potencial),
-        estadoError = estadoError(state.estado)
+        estadoError = estadoError(state.estado),
+        eventoError = eventoError(state.eventoId)
     )
 
     fun tieneErrores(state: OportunidadUiState): Boolean = listOf(
@@ -58,6 +65,7 @@ class OportunidadValidator {
         state.fuenteError,
         state.prioridadError,
         state.potencialError,
-        state.estadoError
+        state.estadoError,
+        state.eventoError
     ).any { it != null }
 }

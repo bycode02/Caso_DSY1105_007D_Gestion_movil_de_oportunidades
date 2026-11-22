@@ -10,8 +10,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
                       CredentialEntity::class,
                       SesionEntity::class,
                       OrganizacionEntity::class,
-                      ContactoEntity::class],
-    version = 6,
+                      ContactoEntity::class,
+                      EventoEntity::class],
+    version = 7,
     exportSchema = true)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun oportunidades(): OportunidadDao
@@ -20,6 +21,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun sesion(): SesionDao
     abstract fun organizaciones(): OrganizacionDao
     abstract fun contacto(): ContactoDao
+    abstract fun eventos(): EventoDao
 
 
     companion object {
@@ -104,6 +106,67 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v7: eventos (de una organización) y asociación opcional de la oportunidad a un evento.
+         * 1. Se crea `eventos`, que referencia a `organizaciones`.
+         * 2. Se recrea `oportunidades` para agregar `eventoId` con su clave foránea (SQLite no
+         *    permite agregarla con ALTER TABLE). Las oportunidades existentes quedan sin evento.
+         */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `eventos` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`nombre` TEXT NOT NULL, `tipo` TEXT NOT NULL, `descripcion` TEXT NOT NULL, " +
+                        "`fechaInicio` INTEGER NOT NULL, `horaInicio` INTEGER NOT NULL, " +
+                        "`horaTermino` INTEGER NOT NULL, `comuna` TEXT NOT NULL, `region` TEXT NOT NULL, " +
+                        "`organizacionId` INTEGER NOT NULL, `publicoEsperado` TEXT NOT NULL, " +
+                        "`condiciones` TEXT NOT NULL, " +
+                        "FOREIGN KEY(`organizacionId`) REFERENCES `organizaciones`(`id`) " +
+                        "ON UPDATE NO ACTION ON DELETE RESTRICT )"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_eventos_organizacionId` " +
+                        "ON `eventos` (`organizacionId`)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_eventos_fechaInicio` " +
+                        "ON `eventos` (`fechaInicio`)"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `oportunidades_nueva` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`nombre` TEXT NOT NULL, `tipo` TEXT NOT NULL, `descripcion` TEXT NOT NULL, " +
+                        "`fuente` TEXT NOT NULL, `prioridad` TEXT NOT NULL, `potencial` TEXT NOT NULL, " +
+                        "`estado` TEXT NOT NULL, `observaciones` TEXT NOT NULL, `responsableId` INTEGER, " +
+                        "`fechaDeteccion` INTEGER NOT NULL, `ultimaActualizacion` INTEGER NOT NULL, " +
+                        "`referenciaGeografica` TEXT NOT NULL, `eventoId` INTEGER, " +
+                        "FOREIGN KEY(`responsableId`) REFERENCES `usuario`(`id`) " +
+                        "ON UPDATE NO ACTION ON DELETE RESTRICT , " +
+                        "FOREIGN KEY(`eventoId`) REFERENCES `eventos`(`id`) " +
+                        "ON UPDATE NO ACTION ON DELETE RESTRICT )"
+                )
+                db.execSQL(
+                    "INSERT INTO `oportunidades_nueva` (`id`, `nombre`, `tipo`, `descripcion`, " +
+                        "`fuente`, `prioridad`, `potencial`, `estado`, `observaciones`, `responsableId`, " +
+                        "`fechaDeteccion`, `ultimaActualizacion`, `referenciaGeografica`, `eventoId`) " +
+                        "SELECT `id`, `nombre`, `tipo`, `descripcion`, `fuente`, `prioridad`, " +
+                        "`potencial`, `estado`, `observaciones`, `responsableId`, `fechaDeteccion`, " +
+                        "`ultimaActualizacion`, `referenciaGeografica`, NULL FROM `oportunidades`"
+                )
+                db.execSQL("DROP TABLE `oportunidades`")
+                db.execSQL("ALTER TABLE `oportunidades_nueva` RENAME TO `oportunidades`")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_oportunidades_responsableId` " +
+                        "ON `oportunidades` (`responsableId`)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_oportunidades_eventoId` " +
+                        "ON `oportunidades` (`eventoId`)"
+                )
+            }
+        }
+
         @Volatile
         private var instancia: AppDatabase? = null
         fun obtener(context: Context): AppDatabase = instancia ?: synchronized(this) {
@@ -111,7 +174,7 @@ abstract class AppDatabase : RoomDatabase() {
                 context.applicationContext,
                 AppDatabase::class.java,
                 "oportunidades.db"
-            ).addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+            ).addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                 .build().also { instancia = it }
         }
     }

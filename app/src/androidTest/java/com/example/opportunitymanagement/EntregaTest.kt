@@ -33,6 +33,13 @@ class EntregaTest {
  private fun seleccionar(value: String) { compose.onAllNodesWithText("Seleccionar ▾")[0].performScrollTo().performClick(); click(value) }
  @Test fun flujoCompleto() {
   val correo = "vendedor${System.currentTimeMillis()}@ejemplo.cl"
+  // Toda oportunidad necesita un evento: se crea uno ficticio con su organización.
+  val nombreEvento = "Feria de prueba ${System.currentTimeMillis()}"
+  runBlocking {
+   val db = AppDatabase.obtener(InstrumentationRegistry.getInstrumentation().targetContext)
+   val organizacionId = db.organizaciones().insert(OrganizacionEntity(nombre = "Municipalidad Ficticia", tipo = "Municipalidad", rubro = "Servicios públicos", comuna = "Puente Alto", region = "Metropolitana"))
+   db.eventos().insertar(EventoEntity(nombre = nombreEvento, tipo = "Feria institucional", fechaInicio = 1_805_068_800_000, horaInicio = 540, horaTermino = 1080, comuna = "Puente Alto", region = "Metropolitana", organizacionId = organizacionId, publicoEsperado = "Trabajadores y familias"))
+  }
   foto("01_acceso")
   click("Crear cuenta")
   texto("Nombre completo", "Vendedor de prueba")
@@ -61,6 +68,9 @@ class EntregaTest {
   texto("Fuente de información *", "Referencia de demostración")
   seleccionar("Alta")
   seleccionar("Alto")
+  // El único desplegable que queda sin elegir es el del evento.
+  compose.onAllNodesWithText("Seleccionar ▾")[0].performScrollTo().performClick()
+  compose.onNodeWithText(nombreEvento, substring = true).performClick()
   texto("Observaciones", "Coordinar presentación de prueba.")
   compose.onNodeWithText("Usar ubicación de prueba").performScrollTo().performClick()
   foto("06_formulario_completo")

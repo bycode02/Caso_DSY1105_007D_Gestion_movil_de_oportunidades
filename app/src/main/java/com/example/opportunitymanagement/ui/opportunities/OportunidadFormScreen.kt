@@ -14,7 +14,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.opportunitymanagement.data.local.EventoConOrganizacion
 import com.example.opportunitymanagement.data.local.OportunidadEntity
+import com.example.opportunitymanagement.utils.FormatoFecha
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,6 +31,7 @@ fun OportunidadFormScreen(
     onEstadoChange: (String) -> Unit,
     onObservacionesChange: (String) -> Unit,
     onReferenciaGeograficaChange: (String) -> Unit,
+    onEventoChange: (Long?) -> Unit,
     guardar: () -> Unit,
     volver: () -> Unit
 ) {
@@ -101,6 +104,7 @@ fun OportunidadFormScreen(
                 s.estadoError,
                 activo
             ) { onEstadoChange(it) }
+            CampoEvento(s.eventos, s.eventoId, s.eventoError, activo, onEventoChange)
             CampoTexto(
                 "Observaciones",
                 s.observaciones,
@@ -161,7 +165,63 @@ private fun FormularioPreview(s: OportunidadUiState) {
         onEstadoChange = {},
         onObservacionesChange = {},
         onReferenciaGeograficaChange = {},
+        onEventoChange = {},
         guardar = {},
         volver = {}
     )
+}
+
+/**
+ * Evento al que se asocia la oportunidad (obligatorio): Oportunidad → Evento → Organización.
+ * Trabaja con el id del evento, no con el nombre.
+ */
+@Composable
+fun CampoEvento(
+    eventos: List<EventoConOrganizacion>,
+    seleccionadoId: Long?,
+    error: String?,
+    enabled: Boolean,
+    onSeleccionar: (Long?) -> Unit
+) {
+    var abierto by remember { mutableStateOf(false) }
+    val seleccionado = eventos.find { it.evento.id == seleccionadoId }
+    Column(Modifier.fillMaxWidth()) {
+        Text("Evento asociado *", style = MaterialTheme.typography.labelLarge)
+        Box {
+            OutlinedButton(
+                onClick = { abierto = true },
+                enabled = enabled,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text((seleccionado?.let { etiquetaEvento(it) } ?: "Seleccionar") + " ▾") }
+            DropdownMenu(expanded = abierto, onDismissRequest = { abierto = false }) {
+                eventos.forEach { item ->
+                    DropdownMenuItem(
+                        text = { Text(etiquetaEvento(item)) },
+                        onClick = { onSeleccionar(item.evento.id); abierto = false }
+                    )
+                }
+            }
+        }
+        if (error != null) Text(
+            error,
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodySmall
+        )
+        if (eventos.isEmpty()) Text(
+            "Aún no hay eventos registrados. Créalos primero desde el menú Eventos.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+private fun etiquetaEvento(item: EventoConOrganizacion): String =
+    "${item.evento.nombre} · ${FormatoFecha.fecha(item.evento.fechaInicio)} · ${item.organizacionNombre}"
+
+@Preview(showBackground = true)
+@Composable
+private fun CampoEventoPreview() {
+    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme {
+        CampoEvento(emptyList(), null, "Selecciona el evento de la oportunidad", true) {}
+    }
 }

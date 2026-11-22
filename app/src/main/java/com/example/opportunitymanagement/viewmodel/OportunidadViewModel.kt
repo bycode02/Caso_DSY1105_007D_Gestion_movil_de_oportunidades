@@ -6,12 +6,14 @@ import com.example.opportunitymanagement.data.local.OportunidadEntity
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.opportunitymanagement.di.appContainer
+import com.example.opportunitymanagement.data.repository.EventoRepository
 import com.example.opportunitymanagement.data.repository.OportunidadRepository
 import com.example.opportunitymanagement.domain.usecase.ObservarSesionUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -20,11 +22,28 @@ class OportunidadViewModel(
     private val repository: OportunidadRepository,
     private val validator: OportunidadValidator,
     // Usuario con sesión iniciada: será el responsable de las oportunidades nuevas.
-    private val observarSesion: ObservarSesionUseCase
+    private val observarSesion: ObservarSesionUseCase,
+    // Eventos para el desplegable "Evento" del formulario.
+    eventoRepository: EventoRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OportunidadUiState())
     val uiState: StateFlow<OportunidadUiState> = _uiState.asStateFlow()
+
+    init {
+        // Mantiene al día el desplegable si se crea o modifica un evento.
+        viewModelScope.launch {
+            eventoRepository.eventos
+                .catch { _uiState.update { it.copy(mensaje = "No se pudieron cargar los eventos") } }
+                .collect { lista -> _uiState.update { it.copy(eventos = lista) } }
+        }
+    }
+
+    /** Evento elegido en el desplegable (obligatorio para guardar). */
+    fun onEventoChange(eventoId: Long?) {
+        if (!puedeEditar) return
+        _uiState.update { it.copy(eventoId = eventoId, eventoError = null, mensaje = null) }
+    }
 
     private val puedeEditar: Boolean
         get() = _uiState.value.let { !it.guardando && !it.cargando && !it.cargaFallida }
@@ -75,7 +94,7 @@ class OportunidadViewModel(
     }
 
     fun cargar(id: Long) {
-        _uiState.value = OportunidadUiState(id = id, cargando = id != 0L)
+        _uiState.value = OportunidadUiState(eventos = _uiState.value.eventos, id = id, cargando = id != 0L)
         if (id == 0L) return
 
         viewModelScope.launch {
@@ -83,7 +102,7 @@ class OportunidadViewModel(
                 val oportunidad = repository.buscar(id)
 
                 if (oportunidad == null) {
-                    _uiState.value = OportunidadUiState(
+                    _uiState.value = OportunidadUiState(eventos = _uiState.value.eventos,
                         id = id,
                         cargaFallida = true,
                         mensaje = "No existe una oportunidad con ese código"
@@ -91,7 +110,7 @@ class OportunidadViewModel(
                     return@launch
                 }
 
-                _uiState.value = OportunidadUiState(
+                _uiState.value = OportunidadUiState(eventos = _uiState.value.eventos,
                     id = oportunidad.id,
                     nombre = oportunidad.nombre,
                     tipo = oportunidad.tipo,
@@ -103,7 +122,8 @@ class OportunidadViewModel(
                     observaciones = oportunidad.observaciones,
                     referenciaGeografica = oportunidad.referenciaGeografica,
                     fechaDeteccion = oportunidad.fechaDeteccion,
-                    responsableId = oportunidad.responsableId
+                    responsableId = oportunidad.responsableId,
+                    eventoId = oportunidad.eventoId
                 )
             } catch (exception: CancellationException) {
                 throw exception
@@ -129,6 +149,7 @@ class OportunidadViewModel(
         val prioridadError = validator.prioridadError(state.prioridad)
         val potencialError = validator.potencialError(state.potencial)
         val estadoError = validator.estadoError(state.estado)
+        val eventoError = validator.eventoError(state.eventoId)
 
         _uiState.update {
             it.copy(
@@ -138,7 +159,8 @@ class OportunidadViewModel(
                 fuenteError = fuenteError,
                 prioridadError = prioridadError,
                 potencialError = potencialError,
-                estadoError = estadoError
+                estadoError = estadoError,
+                eventoError = eventoError
             )
         }
 
@@ -148,7 +170,8 @@ class OportunidadViewModel(
                 fuenteError == null &&
                 prioridadError == null &&
                 potencialError == null &&
-                estadoError == null
+                estadoError == null &&
+                eventoError == null
     }
 
 
@@ -193,7 +216,8 @@ class OportunidadViewModel(
                         observaciones = estadoActual.observaciones.trim(),
                         fechaDeteccion = fechaDeteccion,
                         responsableId = responsableId,
-                        referenciaGeografica = estadoActual.referenciaGeografica
+                        referenciaGeografica = estadoActual.referenciaGeografica,
+                        eventoId = estadoActual.eventoId
                     )
                 )
                 _uiState.update { it.copy(guardando = false, guardadoExitosamente = true) }
@@ -218,7 +242,8 @@ class OportunidadViewModel(
                 OportunidadViewModel(
                     container.oportunidadRepository,
                     OportunidadValidator(),
-                    container.observarSesionUseCase
+                    container.observarSesionUseCase,
+                    container.eventoRepository
                 )
             }
         }

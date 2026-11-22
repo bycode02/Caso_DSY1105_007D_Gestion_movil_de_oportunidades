@@ -23,12 +23,16 @@ import com.example.opportunitymanagement.ui.auth.LoginScreen
 import com.example.opportunitymanagement.ui.auth.RegisterScreen
 import com.example.opportunitymanagement.ui.opportunities.*
 import com.example.opportunitymanagement.ui.contacts.ContactoFormScreen
+import com.example.opportunitymanagement.ui.events.EventoFormScreen
+import com.example.opportunitymanagement.ui.events.EventoListaScreen
 import com.example.opportunitymanagement.ui.organizations.OrganizacionFormScreen
 import com.example.opportunitymanagement.ui.organizations.OrganizacionListaScreen
 import com.example.opportunitymanagement.ui.profile.ProfileScreen
 import com.example.opportunitymanagement.ui.theme.Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme
 import com.example.opportunitymanagement.utils.QrScanner
 import com.example.opportunitymanagement.viewmodel.ContactoViewModel
+import com.example.opportunitymanagement.viewmodel.EventoListaViewModel
+import com.example.opportunitymanagement.viewmodel.EventoViewModel
 import com.example.opportunitymanagement.viewmodel.LoginViewModel
 import com.example.opportunitymanagement.viewmodel.OrganizacionListaViewModel
 import com.example.opportunitymanagement.viewmodel.OrganizacionViewModel
@@ -90,11 +94,59 @@ fun AppNavigation(session: SessionUiState, onLogout: () -> Unit) {
 
         composable("menu") {
             MenuScreen(
-                session.usuario?.nombre.orEmpty(),
-                { nav.navigate("lista") },
-                { nav.navigate("organizaciones") },
-                { nav.navigate("qr") },
-                {nav.navigate("profile")}
+                nombre = session.usuario?.nombre.orEmpty(),
+                lista = { nav.navigate("lista") },
+                organizaciones = { nav.navigate("organizaciones") },
+                eventos = { nav.navigate("eventos") },
+                qr = { nav.navigate("qr") },
+                profile = { nav.navigate("profile") }
+            )
+        }
+        composable("eventos") {
+            val vm: EventoListaViewModel = viewModel(factory = EventoListaViewModel.Factory)
+            val s by vm.uiState.collectAsStateWithLifecycle()
+            EventoListaScreen(
+                s,
+                agregar = { nav.navigate("evento/0") },
+                editar = { nav.navigate("evento/$it") },
+                eliminar = vm::eliminar,
+                volver = { nav.popBackStack() }
+            )
+        }
+        composable(
+            "evento/{id}?organizacionId={organizacionId}",
+            arguments = listOf(
+                navArgument("organizacionId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { entry ->
+            val vm: EventoViewModel = viewModel(factory = EventoViewModel.Factory)
+            val s by vm.uiState.collectAsStateWithLifecycle()
+            LaunchedEffect(Unit) {
+                vm.cargar(
+                    id = entry.arguments?.getString("id")?.toLongOrNull() ?: 0,
+                    organizacionId = entry.arguments?.getString("organizacionId")?.toLongOrNull()
+                )
+            }
+            LaunchedEffect(s.guardadoExitosamente) { if (s.guardadoExitosamente) nav.popBackStack() }
+            EventoFormScreen(
+                state = s,
+                onNombreChange = vm::onNombreChange,
+                onTipoChange = vm::onTipoChange,
+                onDescripcionChange = vm::onDescripcionChange,
+                onFechaChange = vm::onFechaChange,
+                onHoraInicioChange = vm::onHoraInicioChange,
+                onHoraTerminoChange = vm::onHoraTerminoChange,
+                onComunaChange = vm::onComunaChange,
+                onRegionChange = vm::onRegionChange,
+                onOrganizacionChange = vm::onOrganizacionChange,
+                onPublicoEsperadoChange = vm::onPublicoEsperadoChange,
+                onCondicionesChange = vm::onCondicionesChange,
+                onGuardar = vm::guardar,
+                onVolver = { nav.popBackStack() }
             )
         }
         composable("organizaciones") {
@@ -143,7 +195,9 @@ fun AppNavigation(session: SessionUiState, onLogout: () -> Unit) {
                 onVolver = { nav.popBackStack() },
                 // s.id es el de la organización ya guardada (también recién creada).
                 onAgregarContacto = { nav.navigate("contacto/0?organizacionId=${s.id}") },
-                onAbrirContacto = { nav.navigate("contacto/$it") }
+                onAbrirContacto = { nav.navigate("contacto/$it") },
+                onAgregarEvento = { nav.navigate("evento/0?organizacionId=${s.id}") },
+                onAbrirEvento = { nav.navigate("evento/$it") }
             )
         }
         composable(
@@ -200,6 +254,7 @@ fun AppNavigation(session: SessionUiState, onLogout: () -> Unit) {
                 onEstadoChange = vm::onEstadoChange,
                 onObservacionesChange = vm::onObservacionesChange,
                 onReferenciaGeograficaChange = vm::onReferenciaGeograficaChange,
+                onEventoChange = vm::onEventoChange,
                 guardar = vm::guardar,
                 volver = { nav.popBackStack() }
             )
@@ -216,6 +271,7 @@ fun AppNavigation(session: SessionUiState, onLogout: () -> Unit) {
 fun MenuScreen(nombre: String,
                lista: () -> Unit,
                organizaciones: () -> Unit,
+               eventos: () -> Unit,
                qr: () -> Unit,
                profile: () -> Unit) {
     TopAppBar(title = {Text("Menu")},
@@ -250,6 +306,17 @@ fun MenuScreen(nombre: String,
                     "Organizaciones",
                     style = MaterialTheme.typography.titleLarge
                 ); Text("Quién organiza los eventos y actividades →")
+            }
+        }
+        Card(
+            onClick = eventos,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(24.dp)) {
+                Text(
+                    "Eventos",
+                    style = MaterialTheme.typography.titleLarge
+                ); Text("Ferias y actividades, por fecha →")
             }
         }
         OutlinedButton(
@@ -313,7 +380,7 @@ fun QrScreen(abrir: (Long) -> Unit, volver: () -> Unit) {
 @Preview(showBackground = true)
 @Composable
 private fun MenuPreview() {
-    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme { MenuScreen("Vendedor de prueba", {}, {}, {}, {}) }
+    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme { MenuScreen("Vendedor de prueba", {}, {}, {}, {}, {}) }
 }
 
 @Preview(showBackground = true)

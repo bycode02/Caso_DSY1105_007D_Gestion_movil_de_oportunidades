@@ -3,7 +3,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.example.opportunitymanagement.data.repository.OrganizacionConContactosException
+import com.example.opportunitymanagement.data.repository.OrganizacionEnUsoException
 import com.example.opportunitymanagement.data.repository.OrganizacionRepository
 import com.example.opportunitymanagement.di.appContainer
 import kotlinx.coroutines.CancellationException
@@ -46,9 +46,9 @@ class OrganizacionListaViewModel(
                 // Room vuelve a emitir la lista sin la organización.
             } catch (exception: CancellationException) {
                 throw exception
-            } catch (exception: OrganizacionConContactosException) {
+            } catch (exception: OrganizacionEnUsoException) {
                 // Debe ir antes que IllegalStateException, porque hereda de ella.
-                mensaje.value = "No se puede eliminar: la organización tiene contactos. Elimínalos primero."
+                mensaje.value = "No se puede eliminar: la organización tiene contactos o eventos asociados. Elimínalos primero."
             } catch (exception: IllegalStateException) {
                 mensaje.value = "La organización ya no existe"
             } catch (exception: Exception) {

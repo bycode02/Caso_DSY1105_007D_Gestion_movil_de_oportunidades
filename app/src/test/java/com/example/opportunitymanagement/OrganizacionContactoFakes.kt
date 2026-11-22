@@ -3,6 +3,9 @@ package com.example.opportunitymanagement
 import com.example.opportunitymanagement.data.local.ContactoConOrganizacion
 import com.example.opportunitymanagement.data.local.ContactoDao
 import com.example.opportunitymanagement.data.local.ContactoEntity
+import com.example.opportunitymanagement.data.local.EventoConOrganizacion
+import com.example.opportunitymanagement.data.local.EventoDao
+import com.example.opportunitymanagement.data.local.EventoEntity
 import com.example.opportunitymanagement.data.local.OrganizacionConContacto
 import com.example.opportunitymanagement.data.local.OrganizacionDao
 import com.example.opportunitymanagement.data.local.OrganizacionEntity
@@ -75,6 +78,49 @@ class FakeContactoDao(private val organizaciones: FakeOrganizacionDao) : Contact
             }
         }
 }
+
+/** DAO de eventos en memoria; el JOIN con organizaciones se simula con [organizaciones]. */
+class FakeEventoDao(private val organizaciones: FakeOrganizacionDao) : EventoDao {
+    val items = MutableStateFlow<List<EventoEntity>>(emptyList())
+    var guardados = 0
+    private var siguienteId = 900L
+
+    override fun observarTodos(): Flow<List<EventoConOrganizacion>> =
+        combine(items, organizaciones.items) { eventos, orgs ->
+            eventos.sortedWith(compareBy({ it.fechaInicio }, { it.horaInicio })).mapNotNull { e ->
+                orgs.find { it.id == e.organizacionId }?.let { EventoConOrganizacion(e, it.nombre) }
+            }
+        }
+    override fun observarPorOrganizacion(organizacionId: Long): Flow<List<EventoEntity>> =
+        items.map { lista -> lista.filter { it.organizacionId == organizacionId }.sortedBy { it.fechaInicio } }
+    override suspend fun buscar(id: Long) = items.value.find { it.id == id }
+    override suspend fun insertar(evento: EventoEntity): Long {
+        val id = siguienteId++
+        guardados++
+        items.value = items.value + evento.copy(id = id)
+        return id
+    }
+    override suspend fun actualizar(evento: EventoEntity): Int {
+        if (items.value.none { it.id == evento.id }) return 0
+        guardados++
+        items.value = items.value.map { if (it.id == evento.id) evento else it }
+        return 1
+    }
+    override suspend fun eliminar(id: Long): Int {
+        val antes = items.value.size
+        items.value = items.value.filterNot { it.id == id }
+        return antes - items.value.size
+    }
+}
+
+// 15/03/2027 a medianoche UTC, como lo entrega el DatePicker.
+const val FECHA_EVENTO = 1_805_068_800_000L
+
+fun evento(id: Long, organizacionId: Long, nombre: String = "Feria de beneficios") = EventoEntity(
+    id = id, nombre = nombre, tipo = "Feria institucional", fechaInicio = FECHA_EVENTO,
+    horaInicio = 9 * 60, horaTermino = 18 * 60, comuna = "Puente Alto", region = "Metropolitana",
+    organizacionId = organizacionId, publicoEsperado = "Trabajadores y familias"
+)
 
 fun organizacion(id: Long, nombre: String = "Municipalidad Ficticia") = OrganizacionEntity(
     id = id, nombre = nombre, tipo = "Municipalidad", rubro = "Servicios públicos",

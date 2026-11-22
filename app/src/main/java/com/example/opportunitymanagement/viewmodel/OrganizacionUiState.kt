@@ -1,6 +1,7 @@
 package com.example.opportunitymanagement.viewmodel
 
 import com.example.opportunitymanagement.data.local.ContactoEntity
+import com.example.opportunitymanagement.data.local.EventoEntity
 
 data class OrganizacionUiState(
     val id: Long = 0,
@@ -16,6 +17,8 @@ data class OrganizacionUiState(
     val contactos: List<ContactoEntity> = emptyList(),
     // true cuando ya se leyeron los contactos: evita avisar "sin contactos" mientras cargan.
     val contactosCargados: Boolean = false,
+    // Eventos que organiza esta organización (solo cuando ya está guardada).
+    val eventos: List<EventoEntity> = emptyList(),
 
     val nombreError: String? = null,
     val tipoError: String? = null,
