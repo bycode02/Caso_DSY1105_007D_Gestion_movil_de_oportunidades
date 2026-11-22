@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.opportunitymanagement.di.appContainer
+import com.example.opportunitymanagement.data.remote.mensajeParaUsuario
 import com.example.opportunitymanagement.data.repository.OportunidadRepository
 import com.example.opportunitymanagement.utils.FormatoFecha
 import kotlinx.coroutines.CancellationException
@@ -21,13 +22,20 @@ import kotlinx.coroutines.launch
 class ListaViewModel(
     private val repository: OportunidadRepository,
     // Fecha de hoy para el filtro de fechas; se reemplaza en las pruebas.
-    private val hoyUtc: () -> Long = FormatoFecha::hoyUtc
+    private val hoyUtc: () -> Long = FormatoFecha::hoyUtc,
+    // Trae los datos del servidor a Room; en las pruebas no hace nada.
+    private val sincronizar: suspend () -> Unit = {}
 ) : ViewModel() {
 
     // Estado de la acción de eliminar; los items siguen viniendo de Room.
     private val eliminandoId = MutableStateFlow<Long?>(null)
     private val mensaje = MutableStateFlow<String?>(null)
     private val filtros = MutableStateFlow(FiltrosOportunidad())
+
+    init {
+        // Room muestra al instante lo último guardado; al terminar, la lista se actualiza sola.
+        viewModelScope.launch { sincronizarOAviso(sincronizar)?.let { mensaje.value = it } }
+    }
 
     private val items = repository.oportunidades
         .map { ListaUiState(items = it, cargando = false) }
@@ -82,7 +90,7 @@ class ListaViewModel(
             } catch (exception: IllegalStateException) {
                 mensaje.value = "La oportunidad ya no existe"
             } catch (exception: Exception) {
-                mensaje.value = "No se pudo eliminar. Inténtalo nuevamente."
+                mensaje.value = exception.mensajeParaUsuario("No se pudo eliminar. Inténtalo nuevamente.")
             } finally {
                 eliminandoId.update { if (it == id) null else it }
             }
@@ -91,7 +99,13 @@ class ListaViewModel(
 
     companion object {
         val Factory = viewModelFactory {
-            initializer { ListaViewModel(appContainer().oportunidadRepository) }
+            initializer {
+                val container = appContainer()
+                ListaViewModel(
+                    container.oportunidadRepository,
+                    sincronizar = container.sincronizacionRepository::sincronizar
+                )
+            }
         }
 
     }

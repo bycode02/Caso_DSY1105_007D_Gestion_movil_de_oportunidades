@@ -4,6 +4,7 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
@@ -23,7 +24,8 @@ interface OportunidadApi {
     @PUT("api/oportunidades/{id}")
     suspend fun actualizar(
         @Path("id") id: Long,
-        @Body oportunidad: OportunidadDto
+        @Body oportunidad: OportunidadDto,
+        @Header("X-Usuario-Id") usuarioId: Long?   // autor del cambio de estado
     ): OportunidadDto
 
     // Response<Unit> admite tanto 200 como 204 sin cuerpo.

@@ -25,7 +25,7 @@ class SessionRepositoryTest {
             InstrumentationRegistry.getInstrumentation().targetContext,
             AppDatabase::class.java
         ).build()
-        auth = AuthRepository(database)
+        auth = AuthRepository(database.usuarios(), FakeAuthApi())
         session = SessionRepository(database.sesion())
         login = LoginUseCase(auth, session)
     }

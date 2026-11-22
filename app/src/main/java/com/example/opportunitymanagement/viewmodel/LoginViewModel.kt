@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.opportunitymanagement.data.remote.mensajeParaUsuario
 import com.example.opportunitymanagement.di.appContainer
 import com.example.opportunitymanagement.domain.usecase.LoginUseCase
 import kotlinx.coroutines.CancellationException
@@ -73,7 +74,7 @@ class LoginViewModel(private val login: LoginUseCase) : ViewModel() {
                     it.copy(
                         isLoading = false,
                         password = "",
-                        errorMessage = "No se pudo iniciar sesión. Inténtalo nuevamente."
+                        errorMessage = exception.mensajeParaUsuario("No se pudo iniciar sesión. Inténtalo nuevamente.")
                     )
                 }
             }

@@ -9,8 +9,8 @@ import com.example.opportunitymanagement.di.appContainer
 import com.example.opportunitymanagement.data.repository.EventoRepository
 import com.example.opportunitymanagement.data.repository.OportunidadRepository
 import com.example.opportunitymanagement.data.repository.SeguimientoRepository
+import com.example.opportunitymanagement.data.remote.mensajeParaUsuario
 import com.example.opportunitymanagement.domain.usecase.ObservarSesionUseCase
-import com.example.opportunitymanagement.utils.FormatoFecha
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,10 +28,10 @@ class OportunidadViewModel(
     private val observarSesion: ObservarSesionUseCase,
     // Eventos para el desplegable "Evento" del formulario.
     eventoRepository: EventoRepository,
-    // Historial de seguimiento y registro automático de los cambios de estado.
+    // Historial de seguimiento de la oportunidad.
     private val seguimientoRepository: SeguimientoRepository,
-    // Fecha y hora actuales para el historial; se reemplazan en las pruebas.
-    private val ahoraReloj: () -> Long = FormatoFecha::ahoraReloj
+    // Trae del servidor el "Cambio de estado" que registra al guardar; en las pruebas no hace nada.
+    private val sincronizar: suspend () -> Unit = {}
 ) : ViewModel() {
 
     private var observacionHistorial: Job? = null
@@ -214,7 +214,8 @@ class OportunidadViewModel(
             try {
                 // Al editar se conserva el responsable; una oportunidad nueva
                 // (o una antigua sin responsable) queda a cargo de quien la guarda.
-                val responsableId = estadoActual.responsableId ?: observarSesion().first()?.id
+                val usuarioSesion = observarSesion().first()?.id
+                val responsableId = estadoActual.responsableId ?: usuarioSesion
                 if (responsableId == null) {
                     _uiState.update {
                         it.copy(
@@ -239,18 +240,14 @@ class OportunidadViewModel(
                         responsableId = responsableId,
                         referenciaGeografica = estadoActual.referenciaGeografica,
                         eventoId = estadoActual.eventoId
-                    )
+                    ),
+                    // Autor del cambio de estado: el servidor lo registra en el historial.
+                    usuarioId = usuarioSesion
                 )
-                // Al editar, un cambio de estado queda registrado en el historial.
+                // Si cambió el estado, se trae del servidor el registro "Cambio de estado".
                 val estadoAnterior = estadoActual.estadoGuardado
                 if (estadoActual.id != 0L && estadoAnterior != null && estadoAnterior != estadoActual.estado) {
-                    seguimientoRepository.registrarCambioEstado(
-                        oportunidadId = estadoActual.id,
-                        usuarioId = observarSesion().first()?.id,
-                        estadoAnterior = estadoAnterior,
-                        estadoNuevo = estadoActual.estado,
-                        fechaHora = ahoraReloj()
-                    )
+                    sincronizarSinFallar()
                 }
                 _uiState.update { it.copy(guardando = false, guardadoExitosamente = true) }
             } catch (exception: CancellationException) {
@@ -260,10 +257,21 @@ class OportunidadViewModel(
                 _uiState.update {
                     it.copy(
                         guardando = false,
-                        mensaje = "No se pudo guardar. Inténtalo nuevamente."
+                        mensaje = exception.mensajeParaUsuario("No se pudo guardar. Inténtalo nuevamente.")
                     )
                 }
             }
+        }
+    }
+
+    /** Lo guardado ya está en el servidor: si la sincronización falla, se reintenta al abrir las listas. */
+    private suspend fun sincronizarSinFallar() {
+        try {
+            sincronizar()
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            // Sin conexión: el historial se completará en la próxima sincronización.
         }
     }
 
@@ -276,7 +284,8 @@ class OportunidadViewModel(
                     OportunidadValidator(),
                     container.observarSesionUseCase,
                     container.eventoRepository,
-                    container.seguimientoRepository
+                    container.seguimientoRepository,
+                    sincronizar = container.sincronizacionRepository::sincronizar
                 )
             }
         }

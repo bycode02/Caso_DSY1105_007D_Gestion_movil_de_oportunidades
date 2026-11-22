@@ -36,9 +36,9 @@ class OrganizacionViewModelTest {
         contactos = FakeContactoDao(organizaciones)
         eventos = FakeEventoDao(organizaciones)
         vm = OrganizacionViewModel(
-            OrganizacionRepository(organizaciones),
-            ContactoRepository(contactos),
-            EventoRepository(eventos),
+            repositorio(organizaciones),
+            repositorio(contactos),
+            repositorio(eventos),
             OrganizacionValidator()
         )
     }

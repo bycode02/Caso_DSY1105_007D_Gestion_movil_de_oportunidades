@@ -4,13 +4,20 @@ import android.database.sqlite.SQLiteConstraintException
 import com.example.opportunitymanagement.data.local.OrganizacionConContacto
 import com.example.opportunitymanagement.data.local.OrganizacionDao
 import com.example.opportunitymanagement.data.local.OrganizacionEntity
+import com.example.opportunitymanagement.data.remote.OrganizacionApi
+import com.example.opportunitymanagement.data.remote.toDto
+import com.example.opportunitymanagement.data.remote.toEntity
 import kotlinx.coroutines.flow.Flow
+import retrofit2.HttpException
 
 /** No se puede eliminar una organización que todavía tiene contactos o eventos asociados. */
 class OrganizacionEnUsoException :
     IllegalStateException("La organización tiene contactos o eventos asociados")
 
-class OrganizacionRepository(private val dao: OrganizacionDao) {
+class OrganizacionRepository(
+    private val dao: OrganizacionDao,
+    private val api: OrganizacionApi
+) {
 
     // Se actualiza sola cuando cambia la tabla, igual que la lista de oportunidades.
     val organizaciones: Flow<List<OrganizacionEntity>> = dao.obtenerTodas()
@@ -20,20 +27,39 @@ class OrganizacionRepository(private val dao: OrganizacionDao) {
 
     suspend fun buscar(id: Long): OrganizacionEntity? = dao.encontrarPorId(id)
 
-    /** Inserta si es nueva (id = 0) o actualiza si ya existe. Devuelve el id. */
+    /** Crea (id = 0) o actualiza en el servidor y guarda en Room su respuesta. Devuelve el id. */
     suspend fun guardar(item: OrganizacionEntity): Long {
-        if (item.id == 0L) return dao.insert(item)
-        check(dao.actualizar(item) == 1) { "La organización ya no existe" }
-        return item.id
+        val guardada = try {
+            if (item.id == 0L) api.crear(item.toDto().copy(id = null))
+            else api.actualizar(item.id, item.toDto())
+        } catch (exception: HttpException) {
+            if (exception.code() == 404) throw IllegalStateException("La organización ya no existe")
+            throw exception
+        }
+        dao.upsert(guardada.toEntity())
+        return checkNotNull(guardada.id) { "El servidor no devolvió el id" }
     }
 
+    /** El servidor responde 409 si la organización tiene contactos o eventos. */
     suspend fun eliminar(id: Long) {
-        val borradas = try {
+        val respuesta = api.eliminar(id)
+        when {
+            respuesta.isSuccessful -> eliminarLocal(id)
+            respuesta.code() == 409 -> throw OrganizacionEnUsoException()
+            respuesta.code() == 404 -> {
+                eliminarLocal(id)
+                throw IllegalStateException("La organización ya no existe")
+            }
+            else -> throw HttpException(respuesta)
+        }
+    }
+
+    private suspend fun eliminarLocal(id: Long) {
+        try {
             dao.eliminar(id)
         } catch (exception: SQLiteConstraintException) {
-            // Las claves foráneas de contactos y eventos (RESTRICT) impiden el borrado.
-            throw OrganizacionEnUsoException()
+            // La copia local aún tiene contactos o eventos que el servidor ya no tiene;
+            // la próxima sincronización los quita junto con la organización.
         }
-        check(borradas == 1) { "La organización ya no existe" }
     }
 }

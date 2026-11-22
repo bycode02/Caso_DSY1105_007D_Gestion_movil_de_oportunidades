@@ -140,7 +140,7 @@ class FiltroOportunidadesTest {
     @After fun cleanup() { vm?.viewModelScope?.cancel(); Dispatchers.resetMain() }
 
     @Test fun elViewModelFiltraYLimpia() = runTest(dispatcher) {
-        val viewModel = ListaViewModel(OportunidadRepository(DaoConEventos(MutableStateFlow(lista))), hoyUtc = { hoy })
+        val viewModel = ListaViewModel(OportunidadRepository(DaoConEventos(MutableStateFlow(lista)), FakeOportunidadApi()), hoyUtc = { hoy })
             .also { vm = it }
         val recolector = backgroundScope.launch { viewModel.uiState.collect {} }
         advanceUntilIdle()
@@ -164,5 +164,6 @@ class FiltroOportunidadesTest {
         override suspend fun insertar(item: OportunidadEntity): Long = 1
         override suspend fun actualizar(item: OportunidadEntity): Int = 1
         override suspend fun eliminar(id: Long): Int = 1
+        override suspend fun upsert(item: OportunidadEntity) {}
     }
 }

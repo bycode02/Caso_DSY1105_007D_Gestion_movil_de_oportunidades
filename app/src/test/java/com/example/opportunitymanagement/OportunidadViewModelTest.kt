@@ -3,6 +3,7 @@ import com.example.opportunitymanagement.viewmodel.OportunidadValidator
 import com.example.opportunitymanagement.viewmodel.OportunidadViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.opportunitymanagement.data.local.*
+import com.example.opportunitymanagement.data.remote.MENSAJE_SIN_CONEXION
 import com.example.opportunitymanagement.data.repository.EventoRepository
 import com.example.opportunitymanagement.data.repository.OportunidadRepository
 import com.example.opportunitymanagement.data.repository.SeguimientoRepository
@@ -24,7 +25,17 @@ class OportunidadViewModelTest {
  private lateinit var organizaciones: FakeOrganizacionDao
  private lateinit var eventos: FakeEventoDao
  private lateinit var seguimientos: FakeSeguimientoDao
- @Before fun setup() { Dispatchers.setMain(dispatcher); dao = FakeDao(); sesion = FakeSesionDao(USUARIO_SESION); organizaciones = FakeOrganizacionDao(); organizaciones.items.value = listOf(organizacion(3)); eventos = FakeEventoDao(organizaciones); eventos.items.value = listOf(evento(7, organizacionId = 3)); seguimientos = FakeSeguimientoDao(); vm = OportunidadViewModel(OportunidadRepository(dao), OportunidadValidator(), ObservarSesionUseCase(SessionRepository(sesion)), EventoRepository(eventos), SeguimientoRepository(seguimientos), ahoraReloj = { FECHA_EVENTO }) }
+ private lateinit var servidor: FakeOportunidadApi
+ private var sincronizaciones = 0
+ @Before fun setup() {
+  Dispatchers.setMain(dispatcher); dao = FakeDao(); sesion = FakeSesionDao(USUARIO_SESION)
+  organizaciones = FakeOrganizacionDao(); organizaciones.items.value = listOf(organizacion(3))
+  eventos = FakeEventoDao(organizaciones); eventos.items.value = listOf(evento(7, organizacionId = 3))
+  seguimientos = FakeSeguimientoDao(); sincronizaciones = 0
+  // "Servidor" que conoce las mismas oportunidades que el DAO (404 si no existe).
+  servidor = FakeOportunidadApi { id -> dao.items.value.any { it.id == id } }
+  vm = OportunidadViewModel(OportunidadRepository(dao, servidor), OportunidadValidator(), ObservarSesionUseCase(SessionRepository(sesion)), repositorio(eventos), repositorio(seguimientos), sincronizar = { sincronizaciones++ })
+ }
  @After fun cleanup() { vm.viewModelScope.cancel(); Dispatchers.resetMain() }
  private fun completar() {
   vm.onNombreChange("  Feria  "); vm.onTipoChange("Feria empresarial")
@@ -104,18 +115,27 @@ class OportunidadViewModelTest {
   assertEquals(7L, vm.uiState.value.eventoId)
   assertEquals(1, vm.uiState.value.eventos.size)
  }
- @Test fun editarElEstadoQuedaEnElHistorial() = runTest(dispatcher) {
+ @Test fun editarElEstadoLoEnviaConSuAutorYTraeElHistorial() = runTest(dispatcher) {
   dao.items.value = listOf(OportunidadEntity(7, "Anterior", "Feria empresarial", "Desc", "Fuente", "Alta", "Alto", estado = "Contacto pendiente", eventoId = 7))
   vm.cargar(7); advanceUntilIdle(); vm.onEstadoChange("Contacto realizado"); vm.guardar(); advanceUntilIdle()
-  val cambio = seguimientos.items.value.single()
-  assertEquals("Cambio de estado", cambio.tipoAccion)
-  assertEquals("Contacto pendiente → Contacto realizado", cambio.resultado)
-  assertEquals(USUARIO_SESION, cambio.usuarioId)
+  // El servidor registra el "Cambio de estado" a nombre del usuario del header X-Usuario-Id.
+  assertEquals("Contacto realizado", servidor.recibidas.single().estado)
+  assertEquals(USUARIO_SESION, servidor.usuarioDelCambio)
+  assertEquals("Contacto realizado", dao.items.value.single().estado)
+  // La app ya no lo registra por su cuenta: lo trae con la sincronización.
+  assertTrue(seguimientos.items.value.isEmpty())
+  assertEquals(1, sincronizaciones)
  }
- @Test fun sinCambioDeEstadoNoSeRegistraNada() = runTest(dispatcher) {
+ @Test fun sinCambioDeEstadoNoSincroniza() = runTest(dispatcher) {
   dao.items.value = listOf(OportunidadEntity(7, "Anterior", "Feria empresarial", "Desc", "Fuente", "Alta", "Alto", eventoId = 7))
   vm.cargar(7); advanceUntilIdle(); vm.onNombreChange("Otro nombre"); vm.guardar(); advanceUntilIdle()
   assertTrue(seguimientos.items.value.isEmpty())
+  assertEquals(0, sincronizaciones)
+ }
+ @Test fun sinConexionMuestraElMensaje() = runTest(dispatcher) {
+  completar(); dao.fallarConRed = true; vm.guardar(); advanceUntilIdle()
+  assertEquals(MENSAJE_SIN_CONEXION, vm.uiState.value.mensaje)
+  assertFalse(vm.uiState.value.guardando)
  }
  @Test fun elHistorialSeMuestraAlEditar() = runTest(dispatcher) {
   dao.items.value = listOf(OportunidadEntity(7, "Anterior", "Feria empresarial", "Desc", "Fuente", "Alta", "Alto", eventoId = 7))
@@ -125,12 +145,16 @@ class OportunidadViewModelTest {
  }
  private class FakeDao : OportunidadDao {
   val items = MutableStateFlow<List<OportunidadEntity>>(emptyList())
-  var guardados=0; var fallar=false
+  var guardados=0; var fallar=false; var fallarConRed=false
   override fun observarTodas() = items.map { lista -> lista.map { OportunidadConResponsable(it, responsableNombre = null) } }
   override suspend fun buscar(id: Long) = items.value.find { it.id == id }
   override suspend fun insertar(item: OportunidadEntity): Long { if(fallar) error("disco"); guardados++; items.value=items.value+item.copy(id=1); return 1 }
   override suspend fun actualizar(item: OportunidadEntity): Int { if(fallar) error("disco"); if(items.value.none { it.id==item.id }) return 0; guardados++; items.value=items.value.map { if(it.id==item.id) item else it }; return 1 }
   override suspend fun eliminar(id: Long): Int { val antes=items.value.size; items.value=items.value.filterNot { it.id==id }; return antes-items.value.size }
+  override suspend fun upsert(item: OportunidadEntity) {
+   if(fallar) error("disco"); if(fallarConRed) throw java.io.IOException("sin red"); guardados++
+   items.value = if (items.value.any { it.id==item.id }) items.value.map { if(it.id==item.id) item else it } else items.value+item
+  }
  }
  private class FakeSesionDao(id: Long) : SesionDao {
   val usuario = MutableStateFlow<UsuarioEntity?>(UsuarioEntity(id, "Vendedor", "v@ejemplo.cl", Role.VENDEDOR, true, 0, 0))

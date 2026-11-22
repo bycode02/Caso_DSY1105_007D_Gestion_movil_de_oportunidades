@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -36,4 +37,8 @@ interface EventoDao {
 
     @Query("DELETE FROM eventos WHERE id = :id")
     suspend fun eliminar(id: Long): Int
+
+    // Guarda en Room lo que respondió el servidor (inserta o actualiza por id).
+    @Upsert
+    suspend fun upsert(item: EventoEntity)
 }

@@ -5,6 +5,8 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.room.Room
 import com.example.opportunitymanagement.data.local.*
+import com.example.opportunitymanagement.data.remote.RetrofitClient
+import com.example.opportunitymanagement.data.remote.toDto
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
@@ -31,14 +33,18 @@ class EntregaTest {
  private fun click(text: String) { compose.onNodeWithText(text).performClick() }
  private fun texto(label: String, value: String) { compose.onNodeWithText(label).performScrollTo().performTextReplacement(value) }
  private fun seleccionar(value: String) { compose.onAllNodesWithText("Seleccionar ▾")[0].performScrollTo().performClick(); click(value) }
+ /**
+  * Flujo de punta a punta contra el backend real: requiere XAMPP (MySQL) y Mobile_Backend
+  * encendidos (.\mvnw.cmd spring-boot:run) y el emulador (usa http://10.0.2.2:8080/).
+  */
  @Test fun flujoCompleto() {
   val correo = "vendedor${System.currentTimeMillis()}@ejemplo.cl"
-  // Toda oportunidad necesita un evento: se crea uno ficticio con su organización.
+  // Toda oportunidad necesita un evento: se crea uno ficticio con su organización en el servidor;
+  // la lista lo trae a Room al sincronizar.
   val nombreEvento = "Feria de prueba ${System.currentTimeMillis()}"
   runBlocking {
-   val db = AppDatabase.obtener(InstrumentationRegistry.getInstrumentation().targetContext)
-   val organizacionId = db.organizaciones().insert(OrganizacionEntity(nombre = "Municipalidad Ficticia", tipo = "Municipalidad", rubro = "Servicios públicos", comuna = "Puente Alto", region = "Metropolitana"))
-   db.eventos().insertar(EventoEntity(nombre = nombreEvento, tipo = "Feria institucional", fechaInicio = 1_805_068_800_000, horaInicio = 540, horaTermino = 1080, comuna = "Puente Alto", region = "Metropolitana", organizacionId = organizacionId, publicoEsperado = "Trabajadores y familias"))
+   val organizacion = RetrofitClient.organizacionApi.crear(OrganizacionEntity(nombre = "Municipalidad Ficticia", tipo = "Municipalidad", rubro = "Servicios públicos", comuna = "Puente Alto", region = "Metropolitana").toDto())
+   RetrofitClient.eventoApi.crear(EventoEntity(nombre = nombreEvento, tipo = "Feria institucional", fechaInicio = 1_805_068_800_000, horaInicio = 540, horaTermino = 1080, comuna = "Puente Alto", region = "Metropolitana", organizacionId = organizacion.id!!, publicoEsperado = "Trabajadores y familias").toDto())
   }
   foto("01_acceso")
   click("Crear cuenta")

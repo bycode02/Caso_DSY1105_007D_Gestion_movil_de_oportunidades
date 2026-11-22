@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.opportunitymanagement.data.local.SeguimientoEntity
+import com.example.opportunitymanagement.data.remote.mensajeParaUsuario
 import com.example.opportunitymanagement.data.repository.ContactoRepository
 import com.example.opportunitymanagement.data.repository.EventoRepository
 import com.example.opportunitymanagement.data.repository.OportunidadRepository
@@ -31,7 +32,9 @@ class SeguimientoViewModel(
     private val observarSesion: ObservarSesionUseCase,
     private val validator: SeguimientoValidator,
     // Fecha y hora actuales; se reemplazan en las pruebas.
-    private val ahoraReloj: () -> Long = FormatoFecha::ahoraReloj
+    private val ahoraReloj: () -> Long = FormatoFecha::ahoraReloj,
+    // Trae del servidor el nuevo estado y el "Cambio de estado"; en las pruebas no hace nada.
+    private val sincronizar: suspend () -> Unit = {}
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SeguimientoUiState())
@@ -217,11 +220,13 @@ class SeguimientoViewModel(
                         proximaAccion = estadoActual.proximaAccion,
                         fechaProximoSeguimiento = estadoActual.fechaProximo,
                         observaciones = estadoActual.observaciones.trim()
-                    )
+                    ),
+                    // Casilla "Cambiar el estado a ...": el servidor cambia el estado y lo
+                    // deja registrado en el historial, todo en la misma transacción.
+                    nuevoEstado = estadoActual.estadoSugerido.takeIf { estadoActual.cambiarEstado }
                 )
-                val nuevoEstado = estadoActual.estadoSugerido
-                if (estadoActual.cambiarEstado && nuevoEstado != null) {
-                    cambiarEstado(estadoActual.oportunidadId, usuarioId, nuevoEstado, fechaHora)
+                if (estadoActual.cambiarEstado && estadoActual.estadoSugerido != null) {
+                    sincronizarSinFallar()
                 }
                 _uiState.update { it.copy(guardando = false, guardadoExitosamente = true) }
             } catch (exception: CancellationException) {
@@ -229,20 +234,24 @@ class SeguimientoViewModel(
                 throw exception
             } catch (exception: Exception) {
                 _uiState.update {
-                    it.copy(guardando = false, mensaje = "No se pudo guardar. Inténtalo nuevamente.")
+                    it.copy(
+                        guardando = false,
+                        mensaje = exception.mensajeParaUsuario("No se pudo guardar. Inténtalo nuevamente.")
+                    )
                 }
             }
         }
     }
 
-    /** Actualiza el estado de la oportunidad y deja el cambio registrado en su historial. */
-    private suspend fun cambiarEstado(oportunidadId: Long, usuarioId: Long, nuevoEstado: String, fechaHora: Long) {
-        val oportunidad = oportunidadRepository.buscar(oportunidadId) ?: return
-        if (oportunidad.estado == nuevoEstado) return
-        oportunidadRepository.guardar(
-            oportunidad.copy(estado = nuevoEstado, ultimaActualizacion = System.currentTimeMillis())
-        )
-        repository.registrarCambioEstado(oportunidadId, usuarioId, oportunidad.estado, nuevoEstado, fechaHora)
+    /** La acción ya quedó en el servidor: si la sincronización falla, se reintenta al abrir las listas. */
+    private suspend fun sincronizarSinFallar() {
+        try {
+            sincronizar()
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            // Sin conexión: el estado nuevo llegará en la próxima sincronización.
+        }
     }
 
     companion object {
@@ -257,7 +266,8 @@ class SeguimientoViewModel(
                     container.eventoRepository,
                     container.contactoRepository,
                     container.observarSesionUseCase,
-                    SeguimientoValidator()
+                    SeguimientoValidator(),
+                    sincronizar = container.sincronizacionRepository::sincronizar
                 )
             }
         }

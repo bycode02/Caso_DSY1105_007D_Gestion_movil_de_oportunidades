@@ -34,8 +34,8 @@ class ContactoViewModelTest {
         organizaciones.items.value = listOf(organizacion(3), organizacion(4, "Empresa Demo SpA"))
         contactos = FakeContactoDao(organizaciones)
         vm = ContactoViewModel(
-            ContactoRepository(contactos),
-            OrganizacionRepository(organizaciones),
+            repositorio(contactos),
+            repositorio(organizaciones),
             ContactoValidator()
         )
     }

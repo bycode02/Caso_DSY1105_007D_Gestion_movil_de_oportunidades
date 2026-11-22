@@ -38,7 +38,7 @@ class AuthScreensTest {
             InstrumentationRegistry.getInstrumentation().targetContext,
             AppDatabase::class.java
         ).build()
-        val repository = AuthRepository(database)
+        val repository = AuthRepository(database.usuarios(), FakeAuthApi())
         login = LoginViewModel(LoginUseCase(repository, SessionRepository(database.sesion())))
         register = RegisterViewModel(repository)
     }

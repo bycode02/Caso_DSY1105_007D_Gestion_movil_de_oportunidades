@@ -5,6 +5,7 @@ import com.example.opportunitymanagement.data.local.OportunidadConResponsable
 import com.example.opportunitymanagement.data.local.OportunidadDao
 import com.example.opportunitymanagement.data.local.OportunidadEntity
 import com.example.opportunitymanagement.data.repository.OportunidadRepository
+import com.example.opportunitymanagement.viewmodel.AVISO_SIN_CONEXION
 import com.example.opportunitymanagement.viewmodel.ListaViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -27,6 +28,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ListaViewModelTest {
@@ -37,14 +39,18 @@ class ListaViewModelTest {
 
     @After fun cleanup() { vm?.viewModelScope?.cancel(); Dispatchers.resetMain() }
 
+    /** Repository con un "servidor" falso; [existe] decide si el servidor conoce el id. */
+    private fun repositorio(dao: FakeDao, existe: (Long) -> Boolean = { true }) =
+        OportunidadRepository(dao, FakeOportunidadApi(existe = existe))
+
     @Test fun empiezaCargando() {
-        vm = ListaViewModel(OportunidadRepository(FakeDao(MutableStateFlow(emptyList()))))
+        vm = ListaViewModel(repositorio(FakeDao(MutableStateFlow(emptyList()))))
         assertTrue(vm!!.uiState.value.cargando)
     }
 
     @Test fun muestraLosItemsYSeActualiza() = runTest(dispatcher) {
         val items = MutableStateFlow(listOf(oportunidad(1, "Feria")))
-        val viewModel = ListaViewModel(OportunidadRepository(FakeDao(items))).also { vm = it }
+        val viewModel = ListaViewModel(repositorio(FakeDao(items))).also { vm = it }
         val recolector = backgroundScope.launch { viewModel.uiState.collect {} }
         advanceUntilIdle()
 
@@ -58,12 +64,41 @@ class ListaViewModelTest {
     }
 
     @Test fun errorDeLecturaMuestraMensaje() = runTest(dispatcher) {
-        val viewModel = ListaViewModel(OportunidadRepository(FakeDao(flow { error("disco") }))).also { vm = it }
+        val viewModel = ListaViewModel(repositorio(FakeDao(flow { error("disco") }))).also { vm = it }
         val recolector = backgroundScope.launch { viewModel.uiState.collect {} }
         advanceUntilIdle()
 
         assertFalse(viewModel.uiState.value.cargando)
         assertNotNull(viewModel.uiState.value.error)
+        recolector.cancel()
+    }
+
+    @Test fun alAbrirSeSincronizaConElServidor() = runTest(dispatcher) {
+        var sincronizaciones = 0
+        val viewModel = ListaViewModel(
+            repositorio(FakeDao(MutableStateFlow(emptyList()))),
+            sincronizar = { sincronizaciones++ }
+        ).also { vm = it }
+        val recolector = backgroundScope.launch { viewModel.uiState.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(1, sincronizaciones)
+        assertNull(viewModel.uiState.value.mensaje)
+        recolector.cancel()
+    }
+
+    @Test fun sinConexionMuestraLoGuardadoConUnAviso() = runTest(dispatcher) {
+        val items = MutableStateFlow(listOf(oportunidad(1, "Feria")))
+        val viewModel = ListaViewModel(
+            repositorio(FakeDao(items)),
+            sincronizar = { throw IOException("sin red") }
+        ).also { vm = it }
+        val recolector = backgroundScope.launch { viewModel.uiState.collect {} }
+        advanceUntilIdle()
+
+        // La lista sigue mostrando lo que hay en Room.
+        assertEquals(listOf("Feria"), viewModel.uiState.value.items.map { it.oportunidad.nombre })
+        assertEquals(AVISO_SIN_CONEXION, viewModel.uiState.value.mensaje)
         recolector.cancel()
     }
 
@@ -74,7 +109,7 @@ class ListaViewModelTest {
             items.value = items.value.filterNot { it.id == id }
             antes - items.value.size
         }
-        val viewModel = ListaViewModel(OportunidadRepository(dao)).also { vm = it }
+        val viewModel = ListaViewModel(repositorio(dao)).also { vm = it }
         val recolector = backgroundScope.launch { viewModel.uiState.collect {} }
         advanceUntilIdle()
 
@@ -89,7 +124,7 @@ class ListaViewModelTest {
 
     @Test fun dobleToqueEliminaUnaVez() = runTest(dispatcher) {
         val dao = FakeDao(MutableStateFlow(listOf(oportunidad(1, "Feria"))))
-        val viewModel = ListaViewModel(OportunidadRepository(dao)).also { vm = it }
+        val viewModel = ListaViewModel(repositorio(dao)).also { vm = it }
 
         viewModel.eliminar(1); viewModel.eliminar(1)
         advanceUntilIdle()
@@ -98,14 +133,15 @@ class ListaViewModelTest {
     }
 
     @Test fun eliminarInexistenteMuestraMensaje() = runTest(dispatcher) {
+        // El servidor responde 404.
         val dao = FakeDao(MutableStateFlow(emptyList())) { 0 }
-        val viewModel = ListaViewModel(OportunidadRepository(dao)).also { vm = it }
+        val viewModel = ListaViewModel(repositorio(dao, existe = { false })).also { vm = it }
         val recolector = backgroundScope.launch { viewModel.uiState.collect {} }
 
         viewModel.eliminar(99)
         advanceUntilIdle()
 
-        assertNotNull(viewModel.uiState.value.mensaje)
+        assertEquals("La oportunidad ya no existe", viewModel.uiState.value.mensaje)
         assertNull(viewModel.uiState.value.eliminandoId)
         recolector.cancel()
     }
@@ -124,5 +160,6 @@ class ListaViewModelTest {
         override suspend fun insertar(item: OportunidadEntity): Long = 1
         override suspend fun actualizar(item: OportunidadEntity): Int = 1
         override suspend fun eliminar(id: Long): Int { eliminaciones++; return alEliminar(id) }
+        override suspend fun upsert(item: OportunidadEntity) {}
     }
 }

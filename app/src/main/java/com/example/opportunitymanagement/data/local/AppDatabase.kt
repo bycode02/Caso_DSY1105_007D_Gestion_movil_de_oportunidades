@@ -24,6 +24,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun contacto(): ContactoDao
     abstract fun eventos(): EventoDao
     abstract fun seguimientos(): SeguimientoDao
+    // Copia local del servidor (no agrega tablas: no cambia la versión de la base).
+    abstract fun sincronizacion(): SincronizacionDao
 
 
     companion object {

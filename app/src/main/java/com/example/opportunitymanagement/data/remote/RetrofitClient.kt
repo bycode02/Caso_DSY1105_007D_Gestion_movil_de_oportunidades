@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit
 object RetrofitClient {
 
     /**
-     * Microservicio Spring Boot ejecutándose en el computador de desarrollo.
+     * Backend Mobile_Backend (Spring Boot) ejecutándose en el computador de desarrollo.
      * 10.0.2.2 equivale a localhost desde el emulador de Android.
      * En un teléfono físico, reemplazar por la IP del computador en la red local
      * y agregarla a res/xml/network_security_config.xml.
@@ -33,7 +33,14 @@ object RetrofitClient {
             .build()
     }
 
-    val oportunidadApi: OportunidadApi by lazy {
-        crear().create(OportunidadApi::class.java)
-    }
+    // Una sola instancia de Retrofit para todas las APIs.
+    private val retrofit: Retrofit by lazy { crear() }
+
+    val authApi: AuthApi by lazy { retrofit.create(AuthApi::class.java) }
+    val usuarioApi: UsuarioApi by lazy { retrofit.create(UsuarioApi::class.java) }
+    val organizacionApi: OrganizacionApi by lazy { retrofit.create(OrganizacionApi::class.java) }
+    val contactoApi: ContactoApi by lazy { retrofit.create(ContactoApi::class.java) }
+    val eventoApi: EventoApi by lazy { retrofit.create(EventoApi::class.java) }
+    val oportunidadApi: OportunidadApi by lazy { retrofit.create(OportunidadApi::class.java) }
+    val seguimientoApi: SeguimientoApi by lazy { retrofit.create(SeguimientoApi::class.java) }
 }

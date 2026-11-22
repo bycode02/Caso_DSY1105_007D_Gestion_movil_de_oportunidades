@@ -3,9 +3,16 @@ package com.example.opportunitymanagement.data.repository
 import com.example.opportunitymanagement.data.local.ContactoConOrganizacion
 import com.example.opportunitymanagement.data.local.ContactoDao
 import com.example.opportunitymanagement.data.local.ContactoEntity
+import com.example.opportunitymanagement.data.remote.ContactoApi
+import com.example.opportunitymanagement.data.remote.toDto
+import com.example.opportunitymanagement.data.remote.toEntity
 import kotlinx.coroutines.flow.Flow
+import retrofit2.HttpException
 
-class ContactoRepository(private val dao: ContactoDao) {
+class ContactoRepository(
+    private val dao: ContactoDao,
+    private val api: ContactoApi
+) {
 
     // Contactos con el nombre de su organización (JOIN), para la lista.
     val contactos: Flow<List<ContactoConOrganizacion>> = dao.observarTodos()
@@ -15,14 +22,29 @@ class ContactoRepository(private val dao: ContactoDao) {
 
     suspend fun buscar(id: Long): ContactoEntity? = dao.findById(id)
 
-    /** Inserta si es nuevo (id = 0) o actualiza si ya existe. Devuelve el id. */
+    /** Crea (id = 0) o actualiza en el servidor y guarda en Room su respuesta. Devuelve el id. */
     suspend fun guardar(item: ContactoEntity): Long {
-        if (item.id == 0L) return dao.insert(item)
-        check(dao.updteOrg(item) == 1) { "El contacto ya no existe" }
-        return item.id
+        val guardado = try {
+            if (item.id == 0L) api.crear(item.toDto().copy(id = null))
+            else api.actualizar(item.id, item.toDto())
+        } catch (exception: HttpException) {
+            if (exception.code() == 404) throw IllegalStateException("El contacto ya no existe")
+            throw exception
+        }
+        dao.upsert(guardado.toEntity())
+        return checkNotNull(guardado.id) { "El servidor no devolvió el id" }
     }
 
+    /** Las acciones del historial con este contacto quedan sin contacto. */
     suspend fun eliminar(id: Long) {
-        check(dao.delete(id) == 1) { "El contacto ya no existe" }
+        val respuesta = api.eliminar(id)
+        when {
+            respuesta.isSuccessful -> dao.delete(id)
+            respuesta.code() == 404 -> {
+                dao.delete(id)
+                throw IllegalStateException("El contacto ya no existe")
+            }
+            else -> throw HttpException(respuesta)
+        }
     }
 }

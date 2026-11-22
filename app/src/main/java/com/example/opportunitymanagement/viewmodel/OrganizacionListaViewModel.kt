@@ -3,6 +3,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.opportunitymanagement.data.remote.mensajeParaUsuario
 import com.example.opportunitymanagement.data.repository.OrganizacionEnUsoException
 import com.example.opportunitymanagement.data.repository.OrganizacionRepository
 import com.example.opportunitymanagement.di.appContainer
@@ -17,10 +18,16 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class OrganizacionListaViewModel(
-    private val repository: OrganizacionRepository
+    private val repository: OrganizacionRepository,
+    // Trae los datos del servidor a Room; en las pruebas no hace nada.
+    private val sincronizar: suspend () -> Unit = {}
 ) : ViewModel() {
 
     private val mensaje = MutableStateFlow<String?>(null)
+
+    init {
+        viewModelScope.launch { sincronizarOAviso(sincronizar)?.let { mensaje.value = it } }
+    }
 
     // Evita borrar dos veces con un doble toque.
     private var eliminando = false
@@ -52,7 +59,7 @@ class OrganizacionListaViewModel(
             } catch (exception: IllegalStateException) {
                 mensaje.value = "La organización ya no existe"
             } catch (exception: Exception) {
-                mensaje.value = "No se pudo eliminar. Inténtalo nuevamente."
+                mensaje.value = exception.mensajeParaUsuario("No se pudo eliminar. Inténtalo nuevamente.")
             } finally {
                 eliminando = false
             }
@@ -61,7 +68,13 @@ class OrganizacionListaViewModel(
 
     companion object {
         val Factory = viewModelFactory {
-            initializer { OrganizacionListaViewModel(appContainer().organizacionRepository) }
+            initializer {
+                val container = appContainer()
+                OrganizacionListaViewModel(
+                    container.organizacionRepository,
+                    sincronizar = container.sincronizacionRepository::sincronizar
+                )
+            }
         }
     }
 }

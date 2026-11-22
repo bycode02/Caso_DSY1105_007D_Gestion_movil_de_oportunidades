@@ -34,7 +34,7 @@ class EventoViewModelTest {
         organizaciones = FakeOrganizacionDao()
         organizaciones.items.value = listOf(organizacion(3), organizacion(4, "Empresa Demo SpA"))
         eventos = FakeEventoDao(organizaciones)
-        vm = EventoViewModel(EventoRepository(eventos), OrganizacionRepository(organizaciones), EventoValidator())
+        vm = EventoViewModel(repositorio(eventos), repositorio(organizaciones), EventoValidator())
     }
 
     @After fun cleanup() { vm.viewModelScope.cancel(); Dispatchers.resetMain() }

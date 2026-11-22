@@ -1,73 +1,48 @@
 package com.example.opportunitymanagement.data.repository
 
-import androidx.room.withTransaction
-import com.example.opportunitymanagement.data.local.AppDatabase
-import com.example.opportunitymanagement.data.local.CredentialEntity
-import com.example.opportunitymanagement.data.local.Role
+import com.example.opportunitymanagement.data.local.UsuarioDao
 import com.example.opportunitymanagement.data.local.UsuarioEntity
-import com.example.opportunitymanagement.data.security.PasswordHasher
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import com.example.opportunitymanagement.data.remote.AuthApi
+import com.example.opportunitymanagement.data.remote.LoginRequest
+import com.example.opportunitymanagement.data.remote.RegistroRequest
+import com.example.opportunitymanagement.data.remote.toEntity
+import retrofit2.HttpException
 import java.util.Locale
 
 class EmailAlreadyRegisteredException : Exception()
 
 /**
- * Autenticación local. El registro público siempre crea vendedores.
- * La administración de permisos se implementa por separado.
+ * Autenticación contra el backend: el servidor guarda y verifica las contraseñas.
+ * El usuario que responde se guarda en Room (con el id del servidor) para que la
+ * sesión siga abierta al cerrar la app. El registro público siempre crea vendedores.
  */
 class AuthRepository(
-    private val database: AppDatabase,
-    private val passwordHasher: PasswordHasher = PasswordHasher()
+    private val usuarios: UsuarioDao,
+    private val api: AuthApi
 ) {
-    private val users = database.usuarios()
-    private val credentials = database.credenciales()
 
     suspend fun register(name: String, email: String, password: String): UsuarioEntity {
-        val normalizedEmail = email.trim().lowercase(Locale.ROOT)
-        val hash = withContext(Dispatchers.Default) {
-            passwordHasher.createHash(password)
+        val usuario = try {
+            api.registrar(RegistroRequest(name.trim(), normalizar(email), password)).toEntity()
+        } catch (exception: HttpException) {
+            if (exception.code() == 409) throw EmailAlreadyRegisteredException()
+            throw exception
         }
-        // Si falla la credencial, también se revierte la creación del usuario.
-        return database.withTransaction {
-            if (users.findbyEmail(normalizedEmail) != null) {
-                throw EmailAlreadyRegisteredException()
-            }
-            val now = System.currentTimeMillis()
-            val user = UsuarioEntity(
-                id = 0,
-                nombre = name.trim(),
-                email = normalizedEmail,
-                role = Role.VENDEDOR,
-                isActive = true,
-                createAt = now,
-                updateAt = now
-            )
-            val id = users.inserUser(user)
-            credentials.insertCredential(
-                CredentialEntity(
-                    userId = id,
-                    passwordHash = hash.hash,
-                    passwordSalt = hash.salt
-                )
-            )
-            user.copy(id = id)
-        }
+        usuarios.upsert(usuario)
+        return usuario
     }
 
+    /** null si el correo o la contraseña no coinciden, o la cuenta está inactiva (401). */
     suspend fun login(email: String, password: String): UsuarioEntity? {
-        val user = users.findbyEmail(email.trim().lowercase(Locale.ROOT)) ?: return null
-        if (!user.isActive) return null
-        val credential = credentials.findByUserId(user.id) ?: return null
-        val matches = withContext(Dispatchers.Default) {
-            passwordHasher.verifyPassword(
-                password,
-                credential.passwordHash,
-                credential.passwordSalt
-            )
+        val usuario = try {
+            api.login(LoginRequest(normalizar(email), password)).toEntity()
+        } catch (exception: HttpException) {
+            if (exception.code() == 401) return null
+            throw exception
         }
-        if (!matches) return null
-        // Recupera el estado y rol actuales, incluso si cambiaron durante el hash.
-        return users.findById(user.id)?.takeIf { it.isActive }
+        usuarios.upsert(usuario)
+        return usuario.takeIf { it.isActive }
     }
+
+    private fun normalizar(email: String) = email.trim().lowercase(Locale.ROOT)
 }

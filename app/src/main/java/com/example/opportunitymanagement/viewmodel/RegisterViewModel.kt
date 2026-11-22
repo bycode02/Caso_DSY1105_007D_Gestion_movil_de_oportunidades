@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.opportunitymanagement.data.remote.mensajeParaUsuario
 import com.example.opportunitymanagement.di.appContainer
 import com.example.opportunitymanagement.data.repository.AuthRepository
 import com.example.opportunitymanagement.data.repository.EmailAlreadyRegisteredException
@@ -96,7 +97,7 @@ class RegisterViewModel(private val repository: AuthRepository) : ViewModel() {
                 _uiState.update {
                     it.copy(
                         isSaving = false,
-                        errorMessage = "No se pudo crear la cuenta. Inténtalo nuevamente."
+                        errorMessage = exception.mensajeParaUsuario("No se pudo crear la cuenta. Inténtalo nuevamente.")
                     )
                 }
             }

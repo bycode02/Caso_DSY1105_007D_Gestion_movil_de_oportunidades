@@ -3,6 +3,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.opportunitymanagement.data.remote.mensajeParaUsuario
 import com.example.opportunitymanagement.data.repository.ContactoRepository
 import com.example.opportunitymanagement.di.appContainer
 import kotlinx.coroutines.CancellationException
@@ -16,10 +17,16 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class ContactoListaViewModel(
-    private val repository: ContactoRepository
+    private val repository: ContactoRepository,
+    // Trae los datos del servidor a Room; en las pruebas no hace nada.
+    private val sincronizar: suspend () -> Unit = {}
 ) : ViewModel() {
 
     private val mensaje = MutableStateFlow<String?>(null)
+
+    init {
+        viewModelScope.launch { sincronizarOAviso(sincronizar)?.let { mensaje.value = it } }
+    }
 
     // Evita borrar dos veces con un doble toque.
     private var eliminando = false
@@ -49,7 +56,7 @@ class ContactoListaViewModel(
             } catch (exception: IllegalStateException) {
                 mensaje.value = "El contacto ya no existe"
             } catch (exception: Exception) {
-                mensaje.value = "No se pudo eliminar. Inténtalo nuevamente."
+                mensaje.value = exception.mensajeParaUsuario("No se pudo eliminar. Inténtalo nuevamente.")
             } finally {
                 eliminando = false
             }
@@ -58,7 +65,13 @@ class ContactoListaViewModel(
 
     companion object {
         val Factory = viewModelFactory {
-            initializer { ContactoListaViewModel(appContainer().contactoRepository) }
+            initializer {
+                val container = appContainer()
+                ContactoListaViewModel(
+                    container.contactoRepository,
+                    sincronizar = container.sincronizacionRepository::sincronizar
+                )
+            }
         }
     }
 }

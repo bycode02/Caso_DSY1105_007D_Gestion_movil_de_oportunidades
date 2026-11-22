@@ -39,6 +39,8 @@ class SeguimientoViewModelTest {
     private lateinit var oportunidades: FakeOportunidadDao
     private lateinit var seguimientos: FakeSeguimientoDao
     private lateinit var sesion: FakeSesion
+    private lateinit var servidor: FakeSeguimientoApi
+    private var sincronizaciones = 0
     private lateinit var vm: SeguimientoViewModel
 
     @Before fun setup() {
@@ -53,14 +55,17 @@ class SeguimientoViewModelTest {
         oportunidades = FakeOportunidadDao().apply { items.value = listOf(oportunidadDePrueba(1)) }
         seguimientos = FakeSeguimientoDao()
         sesion = FakeSesion(USUARIO)
+        servidor = FakeSeguimientoApi()
+        sincronizaciones = 0
         vm = SeguimientoViewModel(
-            SeguimientoRepository(seguimientos),
-            OportunidadRepository(oportunidades),
-            EventoRepository(eventos),
-            ContactoRepository(contactos),
+            repositorio(seguimientos, servidor),
+            repositorio(oportunidades),
+            repositorio(eventos),
+            repositorio(contactos),
             ObservarSesionUseCase(SessionRepository(sesion)),
             SeguimientoValidator(),
-            ahoraReloj = { ahora }
+            ahoraReloj = { ahora },
+            sincronizar = { sincronizaciones++ }
         )
     }
 
@@ -93,27 +98,33 @@ class SeguimientoViewModelTest {
         assertFalse(vm.uiState.value.cambiarEstado)
     }
 
-    @Test fun guardaLaAccionYCambiaElEstadoConSuRegistro() = runTest(dispatcher) {
+    @Test fun guardaLaAccionYPideAlServidorElCambioDeEstado() = runTest(dispatcher) {
         vm.cargar(1); advanceUntilIdle()
         completar(); vm.onContactoChange(5); vm.guardar(); advanceUntilIdle()
 
         assertTrue(vm.uiState.value.guardadoExitosamente)
-        assertEquals("Propuesta enviada", oportunidades.items.value.single().estado)
-        val (accion, cambio) = seguimientos.items.value
+        // Lo que recibió el servidor: la acción y el estado al que pasa la oportunidad.
+        val (oportunidadId, enviado) = servidor.recibidos.single()
+        assertEquals(1L, oportunidadId)
+        assertEquals("Propuesta enviada", enviado.nuevoEstado)
+        assertNull(enviado.id)
+        // La respuesta del servidor quedó en Room.
+        val accion = seguimientos.items.value.single()
         assertEquals("Envío de propuesta", accion.tipoAccion)
         assertEquals("Se envió la propuesta por correo.", accion.resultado)
         assertEquals(5L, accion.contactoId)
         assertEquals(USUARIO, accion.usuarioId)
         assertEquals(ahora, accion.fechaHora)
-        assertEquals(SeguimientoEntity.TIPO_CAMBIO_ESTADO, cambio.tipoAccion)
-        assertEquals("Contacto realizado → Propuesta enviada", cambio.resultado)
+        // El nuevo estado y el "Cambio de estado" se traen con la sincronización.
+        assertEquals(1, sincronizaciones)
     }
 
-    @Test fun siSeDesmarcaElCambioNoCambiaElEstado() = runTest(dispatcher) {
+    @Test fun siSeDesmarcaElCambioNoSePideCambiarElEstado() = runTest(dispatcher) {
         vm.cargar(1); advanceUntilIdle()
         completar(); vm.onCambiarEstadoChange(false); vm.guardar(); advanceUntilIdle()
-        assertEquals("Contacto realizado", oportunidades.items.value.single().estado)
+        assertNull(servidor.recibidos.single().second.nuevoEstado)
         assertEquals(1, seguimientos.items.value.size)
+        assertEquals(0, sincronizaciones)
     }
 
     @Test fun sinResultadoNoSeGuarda() = runTest(dispatcher) {

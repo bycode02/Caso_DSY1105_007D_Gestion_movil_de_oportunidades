@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.opportunitymanagement.data.remote.mensajeParaUsuario
 import com.example.opportunitymanagement.data.local.OrganizacionEntity
 import com.example.opportunitymanagement.data.repository.ContactoRepository
 import com.example.opportunitymanagement.data.repository.EventoRepository
@@ -209,7 +210,7 @@ class OrganizacionViewModel(
                 }
             } catch (exception: Exception) {
                 _uiState.update {
-                    it.copy(guardando = false, mensaje = "No se pudo guardar. Inténtalo nuevamente.")
+                    it.copy(guardando = false, mensaje = exception.mensajeParaUsuario("No se pudo guardar. Inténtalo nuevamente."))
                 }
             }
         }

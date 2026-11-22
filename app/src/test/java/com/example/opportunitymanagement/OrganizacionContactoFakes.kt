@@ -52,6 +52,12 @@ class FakeOrganizacionDao : OrganizacionDao {
         items.value = items.value.filterNot { it.id == id }
         return antes - items.value.size
     }
+    override suspend fun upsert(item: OrganizacionEntity) {
+        guardados++
+        items.value = if (items.value.any { it.id == item.id })
+            items.value.map { if (it.id == item.id) item else it }
+        else items.value + item
+    }
 }
 
 /** DAO de contactos en memoria; el JOIN con organizaciones se simula con [organizaciones]. */
@@ -78,6 +84,12 @@ class FakeContactoDao(private val organizaciones: FakeOrganizacionDao) : Contact
         val antes = items.value.size
         items.value = items.value.filterNot { it.id == id }
         return antes - items.value.size
+    }
+    override suspend fun upsert(item: ContactoEntity) {
+        guardados++
+        items.value = if (items.value.any { it.id == item.id })
+            items.value.map { if (it.id == item.id) item else it }
+        else items.value + item
     }
     override fun observarPorOrganizacion(organizacionId: Long): Flow<List<ContactoEntity>> =
         items.map { lista -> lista.filter { it.organizacionId == organizacionId }.sortedBy { it.nombre } }
@@ -121,6 +133,12 @@ class FakeEventoDao(private val organizaciones: FakeOrganizacionDao) : EventoDao
         items.value = items.value.filterNot { it.id == id }
         return antes - items.value.size
     }
+    override suspend fun upsert(item: EventoEntity) {
+        guardados++
+        items.value = if (items.value.any { it.id == item.id })
+            items.value.map { if (it.id == item.id) item else it }
+        else items.value + item
+    }
 }
 
 // 15/03/2027 a medianoche UTC, como lo entrega el DatePicker.
@@ -145,6 +163,7 @@ fun contacto(id: Long, organizacionId: Long, nombre: String = "Laura Soto") = Co
 /** DAO de oportunidades en memoria (para los ViewModels que la leen o cambian su estado). */
 class FakeOportunidadDao : OportunidadDao {
     val items = MutableStateFlow<List<OportunidadEntity>>(emptyList())
+    var guardados = 0
     override fun observarTodas(): Flow<List<OportunidadConResponsable>> =
         items.map { lista -> lista.map { OportunidadConResponsable(it, responsableNombre = null) } }
     override suspend fun buscar(id: Long) = items.value.find { it.id == id }
@@ -163,11 +182,18 @@ class FakeOportunidadDao : OportunidadDao {
         items.value = items.value.filterNot { it.id == id }
         return antes - items.value.size
     }
+    override suspend fun upsert(item: OportunidadEntity) {
+        guardados++
+        items.value = if (items.value.any { it.id == item.id })
+            items.value.map { if (it.id == item.id) item else it }
+        else items.value + item
+    }
 }
 
 /** DAO de seguimientos en memoria; sin JOIN, los nombres de usuario y contacto quedan en null. */
 class FakeSeguimientoDao : SeguimientoDao {
     val items = MutableStateFlow<List<SeguimientoEntity>>(emptyList())
+    var guardados = 0
     private var siguienteId = 1L
     override fun observarPorOportunidad(oportunidadId: Long): Flow<List<SeguimientoConDetalle>> =
         items.map { lista ->
@@ -179,6 +205,12 @@ class FakeSeguimientoDao : SeguimientoDao {
         val id = siguienteId++
         items.value = items.value + seguimiento.copy(id = id)
         return id
+    }
+    override suspend fun upsert(item: SeguimientoEntity) {
+        guardados++
+        items.value = if (items.value.any { it.id == item.id })
+            items.value.map { if (it.id == item.id) item else it }
+        else items.value + item
     }
 }
 

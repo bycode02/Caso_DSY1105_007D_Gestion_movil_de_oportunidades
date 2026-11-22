@@ -12,8 +12,13 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 
+/**
+ * La contraseña la guarda y verifica el backend (sus pruebas cubren el hash).
+ * Aquí se comprueba que la app normaliza el correo y guarda en Room el usuario del servidor.
+ */
 class AuthRepositoryTest {
     private lateinit var database: AppDatabase
+    private lateinit var servidor: FakeAuthApi
     private lateinit var repository: AuthRepository
 
     @Before
@@ -22,27 +27,28 @@ class AuthRepositoryTest {
             InstrumentationRegistry.getInstrumentation().targetContext,
             AppDatabase::class.java
         ).build()
-        repository = AuthRepository(database)
+        servidor = FakeAuthApi()
+        repository = AuthRepository(database.usuarios(), servidor)
     }
 
     @After
     fun cleanup() = database.close()
 
     @Test
-    fun publicRegistrationCreatesSellerAndHashedCredential() = runBlocking {
+    fun registroCreaVendedorYLoGuardaConElIdDelServidor() = runBlocking {
         val user = repository.register("  Ana Pérez  ", "  ANA@EJEMPLO.CL ", "Clave1234!")
         assertEquals("Ana Pérez", user.nombre)
         assertEquals("ana@ejemplo.cl", user.email)
         assertEquals(Role.VENDEDOR, user.role)
-        val credential = database.credenciales().findByUserId(user.id)!!
-        assertNotEquals("Clave1234!", credential.passwordHash)
-        assertTrue(credential.passwordSalt.isNotBlank())
+        assertEquals(user.id, database.usuarios().findById(user.id)?.id)
+        // La contraseña no queda en el teléfono.
+        assertNull(database.credenciales().findByUserId(user.id))
         assertEquals(user.id, repository.login(" ANA@EJEMPLO.CL ", "Clave1234!")?.id)
         assertNull(repository.login(user.email, "incorrecta"))
     }
 
     @Test
-    fun duplicateEmailIsRejectedIgnoringCaseAndSpaces() = runBlocking {
+    fun correoRepetidoSeRechazaSinImportarMayusculasNiEspacios() = runBlocking {
         val original = repository.register("Ana", "ana@ejemplo.cl", "Clave1234!")
         try {
             repository.register("Otra cuenta", " ANA@EJEMPLO.CL ", "OtraClave123!")
@@ -54,37 +60,18 @@ class AuthRepositoryTest {
     }
 
     @Test
-    fun credentialFailureRollsBackUserInsert() = runBlocking {
-        database.openHelper.writableDatabase.execSQL(
-            """
-            CREATE TRIGGER fail_credential BEFORE INSERT ON credentials
-            BEGIN SELECT RAISE(ABORT, 'forced test failure'); END
-            """.trimIndent()
-        )
-        try {
-            repository.register("Ana", "rollback@ejemplo.cl", "Clave1234!")
-            fail("La inserción debe fallar")
-        } catch (_: android.database.sqlite.SQLiteException) {
-            assertNull(database.usuarios().findbyEmail("rollback@ejemplo.cl"))
-        }
-    }
-
-    @Test
-    fun loginRejectsInactiveMissingOrCredentiallessUsers() = runBlocking {
+    fun loginRechazaCuentasInactivasOInexistentes() = runBlocking {
         val user = repository.register("Ana", "ana@ejemplo.cl", "Clave1234!")
-        database.usuarios().setUserActive(user.id, false, System.currentTimeMillis())
+        servidor.modificar(user.email) { it.copy(isActive = false) }
         assertNull(repository.login(user.email, "Clave1234!"))
         assertNull(repository.login("inexistente@ejemplo.cl", "Clave1234!"))
-        database.usuarios().setUserActive(user.id, true, System.currentTimeMillis())
-        database.credenciales().deleteByUserId(user.id)
-        assertNull(repository.login(user.email, "Clave1234!"))
     }
 
     @Test
-    fun loginReturnsStoredRoleInsteadOfAssigningOne() = runBlocking {
+    fun loginTraeElRolActualDelServidor() = runBlocking {
         val user = repository.register("Ana", "ana@ejemplo.cl", "Clave1234!")
-        // Preparación de un administrador exclusivamente en esta BD de prueba.
-        database.usuarios().updateUser(user.copy(role = Role.ADMINISTRADOR))
+        servidor.modificar(user.email) { it.copy(role = Role.ADMINISTRADOR) }
         assertEquals(Role.ADMINISTRADOR, repository.login(user.email, "Clave1234!")?.role)
+        assertEquals(Role.ADMINISTRADOR, database.usuarios().findById(user.id)?.role)
     }
 }

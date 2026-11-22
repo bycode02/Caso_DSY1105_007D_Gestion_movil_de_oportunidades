@@ -37,4 +37,9 @@ interface OportunidadDao {
 
     @Query(value = "DELETE FROM oportunidades where id = :id")
     suspend fun eliminar(id : Long): Int
+
+    // Guarda en Room lo que respondió el servidor (inserta o actualiza por id).
+    // La copia completa la reemplaza SincronizacionDao, sin borrar el historial.
+    @Upsert
+    suspend fun upsert(item: OportunidadEntity)
 }

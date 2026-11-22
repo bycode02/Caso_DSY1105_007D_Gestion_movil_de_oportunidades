@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -26,4 +27,8 @@ interface UsuarioDao {
         active: Boolean,
         updatedAt: Long
     ): Int
+
+    // Usuario que devolvió el servidor al iniciar sesión o registrarse (con el id del servidor).
+    @Upsert
+    suspend fun upsert(user: UsuarioEntity)
 }
