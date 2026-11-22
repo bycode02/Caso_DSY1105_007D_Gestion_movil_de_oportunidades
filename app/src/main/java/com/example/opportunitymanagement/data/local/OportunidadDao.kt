@@ -9,7 +9,8 @@ interface OportunidadDao {
     @Query(
         """
         SELECT o.*, u.nombre AS responsableNombre,
-               e.nombre AS eventoNombre, org.nombre AS organizacionNombre
+               e.nombre AS eventoNombre, org.nombre AS organizacionNombre,
+               e.fechaInicio AS eventoFecha, e.comuna AS eventoComuna, e.region AS eventoRegion
         FROM oportunidades o
         LEFT JOIN usuario u ON u.id = o.responsableId
         LEFT JOIN eventos e ON e.id = o.eventoId

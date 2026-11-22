@@ -1,6 +1,7 @@
 package com.example.opportunitymanagement.ui.opportunities
 
 import com.example.opportunitymanagement.ui.theme.Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme
+import com.example.opportunitymanagement.viewmodel.FiltrosOportunidad
 import com.example.opportunitymanagement.viewmodel.ListaUiState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,7 +24,10 @@ fun ListaOportunidadesScreen(
     agregar: () -> Unit,
     editar: (Long) -> Unit,
     eliminar: (Long) -> Unit,
-    volver: () -> Unit
+    volver: () -> Unit,
+    onBuscar: (String) -> Unit,
+    onFiltrosChange: (FiltrosOportunidad) -> Unit,
+    onLimpiarFiltros: () -> Unit
 ) {
     // Oportunidad que espera confirmación; es estado visual, por eso vive en la pantalla.
     var porEliminar by remember { mutableStateOf<OportunidadEntity?>(null) }
@@ -64,18 +68,31 @@ fun ListaOportunidadesScreen(
                     color = MaterialTheme.colorScheme.primary
                 )
             }
+            // Búsqueda y filtros: la pantalla solo avisa lo elegido; el ViewModel filtra.
+            item { BuscadorOportunidades(s.filtros.texto, onBuscar) }
             item {
-                Text(
-                    "${s.items.size} oportunidades registradas",
-                    style = MaterialTheme.typography.titleMedium
+                PanelFiltros(
+                    filtros = s.filtros,
+                    opcionesOrganizacion = s.opcionesOrganizacion,
+                    opcionesComuna = s.opcionesComuna,
+                    opcionesRegion = s.opcionesRegion,
+                    opcionesResponsable = s.opcionesResponsable,
+                    onFiltrosChange = onFiltrosChange
                 )
             }
+            item { ResumenFiltros(s.items.size, s.total, s.filtros, onLimpiarFiltros) }
             if (s.cargando) item { CircularProgressIndicator() }
             if (s.error != null) item { Text(s.error, color = MaterialTheme.colorScheme.error) }
             if (s.mensaje != null) item { Text(s.mensaje, color = MaterialTheme.colorScheme.error) }
-            if (!s.cargando && s.error == null && s.items.isEmpty()) item {
+            if (!s.cargando && s.error == null && s.total == 0) item {
                 Text(
                     "Aún no tienes oportunidades. Registra la primera para comenzar.",
+                    Modifier.padding(vertical = 36.dp)
+                )
+            }
+            if (!s.cargando && s.error == null && s.total > 0 && s.items.isEmpty()) item {
+                Text(
+                    "Ninguna oportunidad coincide con la búsqueda o los filtros.",
                     Modifier.padding(vertical = 36.dp)
                 )
             }
@@ -168,13 +185,13 @@ private val ejemplo = OportunidadConResponsable(ejemploOportunidad, responsableN
 @Preview(showBackground = true)
 @Composable
 private fun ListaPreview() {
-    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme { ListaOportunidadesScreen(ListaUiState(listOf(ejemplo), false), {}, {}, {}, {}) }
+    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme { ListaOportunidadesScreen(ListaUiState(items = listOf(ejemplo), total = 1, cargando = false), {}, {}, {}, {}, {}, {}, {}) }
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun ListaVaciaPreview() {
-    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme { ListaOportunidadesScreen(ListaUiState(cargando = false), {}, {}, {}, {}) }
+    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme { ListaOportunidadesScreen(ListaUiState(cargando = false), {}, {}, {}, {}, {}, {}, {}) }
 }
 
 @Preview(showBackground = true)
@@ -200,6 +217,21 @@ private fun CardSinResponsablePreview() {
             OportunidadConResponsable(ejemploOportunidad.copy(responsableId = null), responsableNombre = null),
             abrir = {},
             eliminar = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, heightDp = 900)
+@Composable
+private fun ListaSinCoincidenciasPreview() {
+    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme {
+        ListaOportunidadesScreen(
+            ListaUiState(
+                total = 4,
+                cargando = false,
+                filtros = FiltrosOportunidad(texto = "congreso", prioridad = "Alta")
+            ),
+            {}, {}, {}, {}, {}, {}, {}
         )
     }
 }

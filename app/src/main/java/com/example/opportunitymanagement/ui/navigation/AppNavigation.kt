@@ -169,11 +169,15 @@ fun AppNavigation(session: SessionUiState, onLogout: () -> Unit) {
             val vm: ListaViewModel = viewModel(factory = ListaViewModel.Factory)
             val lista by vm.uiState.collectAsStateWithLifecycle()
             ListaOportunidadesScreen(
-                lista,
-                { nav.navigate("form/0") },
-                { nav.navigate("form/$it") },
-                vm::eliminar,
-                { nav.popBackStack() })
+                s = lista,
+                agregar = { nav.navigate("form/0") },
+                editar = { nav.navigate("form/$it") },
+                eliminar = vm::eliminar,
+                volver = { nav.popBackStack() },
+                onBuscar = vm::onBuscar,
+                onFiltrosChange = vm::onFiltrosChange,
+                onLimpiarFiltros = vm::limpiarFiltros
+            )
         }
         composable("organizacion/{id}") { entry ->
             val vm: OrganizacionViewModel = viewModel(factory = OrganizacionViewModel.Factory)

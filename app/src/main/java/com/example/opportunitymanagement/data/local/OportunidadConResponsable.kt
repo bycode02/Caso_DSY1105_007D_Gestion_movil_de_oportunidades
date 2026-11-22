@@ -13,5 +13,9 @@ data class OportunidadConResponsable(
     val responsableNombre: String?,
     // Null cuando la oportunidad no está asociada a un evento.
     val eventoNombre: String? = null,
-    val organizacionNombre: String? = null
+    val organizacionNombre: String? = null,
+    // Datos del evento para buscar y filtrar (fecha = medianoche UTC del día del evento).
+    val eventoFecha: Long? = null,
+    val eventoComuna: String? = null,
+    val eventoRegion: String? = null
 )
