@@ -11,8 +11,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
                       SesionEntity::class,
                       OrganizacionEntity::class,
                       ContactoEntity::class,
-                      EventoEntity::class],
-    version = 7,
+                      EventoEntity::class,
+                      SeguimientoEntity::class],
+    version = 8,
     exportSchema = true)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun oportunidades(): OportunidadDao
@@ -22,6 +23,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun organizaciones(): OrganizacionDao
     abstract fun contacto(): ContactoDao
     abstract fun eventos(): EventoDao
+    abstract fun seguimientos(): SeguimientoDao
 
 
     companion object {
@@ -167,6 +169,43 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v8: historial de seguimiento de cada oportunidad. Es una tabla nueva, así que no hay
+         * datos que copiar. Se borra junto con su oportunidad (CASCADE); si se borra el usuario
+         * o el contacto, la acción queda en el historial sin ellos (SET NULL).
+         */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `seguimientos` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`oportunidadId` INTEGER NOT NULL, `usuarioId` INTEGER, " +
+                        "`tipoAccion` TEXT NOT NULL, `fechaHora` INTEGER NOT NULL, " +
+                        "`resultado` TEXT NOT NULL, `contactoId` INTEGER, " +
+                        "`proximaAccion` TEXT NOT NULL, `fechaProximoSeguimiento` INTEGER, " +
+                        "`observaciones` TEXT NOT NULL, " +
+                        "FOREIGN KEY(`oportunidadId`) REFERENCES `oportunidades`(`id`) " +
+                        "ON UPDATE NO ACTION ON DELETE CASCADE , " +
+                        "FOREIGN KEY(`usuarioId`) REFERENCES `usuario`(`id`) " +
+                        "ON UPDATE NO ACTION ON DELETE SET NULL , " +
+                        "FOREIGN KEY(`contactoId`) REFERENCES `contactos`(`id`) " +
+                        "ON UPDATE NO ACTION ON DELETE SET NULL )"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_seguimientos_oportunidadId` " +
+                        "ON `seguimientos` (`oportunidadId`)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_seguimientos_usuarioId` " +
+                        "ON `seguimientos` (`usuarioId`)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_seguimientos_contactoId` " +
+                        "ON `seguimientos` (`contactoId`)"
+                )
+            }
+        }
+
         @Volatile
         private var instancia: AppDatabase? = null
         fun obtener(context: Context): AppDatabase = instancia ?: synchronized(this) {
@@ -174,7 +213,7 @@ abstract class AppDatabase : RoomDatabase() {
                 context.applicationContext,
                 AppDatabase::class.java,
                 "oportunidades.db"
-            ).addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+            ).addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                 .build().also { instancia = it }
         }
     }

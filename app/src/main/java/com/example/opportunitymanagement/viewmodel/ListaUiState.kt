@@ -8,6 +8,8 @@ data class ListaUiState(
     // Total guardado, sin filtrar ("3 de 12 oportunidades").
     val total: Int = 0,
     val filtros: FiltrosOportunidad = FiltrosOportunidad(),
+    // Hoy (medianoche UTC): para mostrar si el próximo seguimiento está atrasado.
+    val hoyUtc: Long = 0L,
     // Opciones de los filtros que salen de los datos guardados.
     val opcionesOrganizacion: List<String> = emptyList(),
     val opcionesComuna: List<String> = emptyList(),

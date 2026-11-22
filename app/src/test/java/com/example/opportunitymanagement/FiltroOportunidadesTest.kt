@@ -6,6 +6,7 @@ import com.example.opportunitymanagement.data.local.OportunidadDao
 import com.example.opportunitymanagement.data.local.OportunidadEntity
 import com.example.opportunitymanagement.data.repository.OportunidadRepository
 import com.example.opportunitymanagement.viewmodel.FiltroOportunidades
+import com.example.opportunitymanagement.viewmodel.FiltroSeguimiento
 import com.example.opportunitymanagement.viewmodel.FiltrosOportunidad
 import com.example.opportunitymanagement.viewmodel.ListaViewModel
 import com.example.opportunitymanagement.viewmodel.RangoFecha
@@ -106,6 +107,17 @@ class FiltroOportunidadesTest {
         val sinEvento = item(9, "Antigua", evento = null, fecha = null)
         assertFalse(FiltroOportunidades.cumple(sinEvento, FiltrosOportunidad(fecha = RangoFecha.PROXIMOS_30), hoy))
         assertTrue(FiltroOportunidades.cumple(sinEvento, FiltrosOportunidad(), hoy))
+    }
+
+    @Test fun filtraPorSeguimientoAtrasadoOPendiente() {
+        val atrasado = item(10, "Atrasada").copy(proximoSeguimiento = hoy - dia, proximaAccion = "Llamada")
+        val pendiente = item(11, "Pendiente").copy(proximoSeguimiento = hoy, proximaAccion = "Llamada")
+        val sinProxima = item(12, "Sin próxima")
+        val todas = listOf(atrasado, pendiente, sinProxima)
+        fun con(filtro: FiltroSeguimiento) = FiltroOportunidades
+            .aplicar(todas, FiltrosOportunidad(seguimiento = filtro), hoy).map { it.oportunidad.nombre }
+        assertEquals(listOf("Atrasada"), con(FiltroSeguimiento.ATRASADOS))
+        assertEquals(listOf("Pendiente"), con(FiltroSeguimiento.PENDIENTES))
     }
 
     @Test fun losFiltrosSeCombinan() {

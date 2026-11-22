@@ -28,6 +28,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.opportunitymanagement.ui.theme.Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme
 import com.example.opportunitymanagement.viewmodel.FiltroOportunidades
+import com.example.opportunitymanagement.viewmodel.FiltroSeguimiento
 import com.example.opportunitymanagement.viewmodel.FiltrosOportunidad
 import com.example.opportunitymanagement.viewmodel.Opciones
 import com.example.opportunitymanagement.viewmodel.RangoFecha
@@ -79,6 +80,10 @@ fun PanelFiltros(
             RangoFecha.entries.filter { it != RangoFecha.TODAS }.map { it.etiqueta }) { etiqueta ->
             val rango = RangoFecha.entries.find { it.etiqueta == etiqueta } ?: RangoFecha.TODAS
             onFiltrosChange(filtros.copy(fecha = rango))
+        }
+        FiltroDesplegable("Seguimiento", filtros.seguimiento?.etiqueta,
+            FiltroSeguimiento.entries.map { it.etiqueta }) { etiqueta ->
+            onFiltrosChange(filtros.copy(seguimiento = FiltroSeguimiento.entries.find { it.etiqueta == etiqueta }))
         }
         FiltroDesplegable("Organización", filtros.organizacion, opcionesOrganizacion) {
             onFiltrosChange(filtros.copy(organizacion = it))

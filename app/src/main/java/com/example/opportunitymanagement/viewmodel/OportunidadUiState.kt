@@ -1,6 +1,7 @@
 package com.example.opportunitymanagement.viewmodel
 
 import com.example.opportunitymanagement.data.local.EventoConOrganizacion
+import com.example.opportunitymanagement.data.local.SeguimientoConDetalle
 
 data class OportunidadUiState(
     val id: Long = 0,
@@ -19,6 +20,10 @@ data class OportunidadUiState(
     // Evento asociado (opcional) y opciones del desplegable de eventos.
     val eventoId: Long? = null,
     val eventos: List<EventoConOrganizacion> = emptyList(),
+    // Historial de acciones y cambios de estado (solo al editar).
+    val historial: List<SeguimientoConDetalle> = emptyList(),
+    // Estado con que se cargó la oportunidad: si cambia al guardar, queda en el historial.
+    val estadoGuardado: String? = null,
     val eliminando: Boolean = false,
 
     val nombreError: String? = null,

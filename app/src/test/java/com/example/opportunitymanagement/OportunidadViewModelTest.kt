@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.opportunitymanagement.data.local.*
 import com.example.opportunitymanagement.data.repository.EventoRepository
 import com.example.opportunitymanagement.data.repository.OportunidadRepository
+import com.example.opportunitymanagement.data.repository.SeguimientoRepository
 import com.example.opportunitymanagement.data.repository.SessionRepository
 import com.example.opportunitymanagement.domain.usecase.ObservarSesionUseCase
 import com.example.opportunitymanagement.ui.opportunities.*
@@ -22,7 +23,8 @@ class OportunidadViewModelTest {
  private lateinit var sesion: FakeSesionDao
  private lateinit var organizaciones: FakeOrganizacionDao
  private lateinit var eventos: FakeEventoDao
- @Before fun setup() { Dispatchers.setMain(dispatcher); dao = FakeDao(); sesion = FakeSesionDao(USUARIO_SESION); organizaciones = FakeOrganizacionDao(); organizaciones.items.value = listOf(organizacion(3)); eventos = FakeEventoDao(organizaciones); eventos.items.value = listOf(evento(7, organizacionId = 3)); vm = OportunidadViewModel(OportunidadRepository(dao), OportunidadValidator(), ObservarSesionUseCase(SessionRepository(sesion)), EventoRepository(eventos)) }
+ private lateinit var seguimientos: FakeSeguimientoDao
+ @Before fun setup() { Dispatchers.setMain(dispatcher); dao = FakeDao(); sesion = FakeSesionDao(USUARIO_SESION); organizaciones = FakeOrganizacionDao(); organizaciones.items.value = listOf(organizacion(3)); eventos = FakeEventoDao(organizaciones); eventos.items.value = listOf(evento(7, organizacionId = 3)); seguimientos = FakeSeguimientoDao(); vm = OportunidadViewModel(OportunidadRepository(dao), OportunidadValidator(), ObservarSesionUseCase(SessionRepository(sesion)), EventoRepository(eventos), SeguimientoRepository(seguimientos), ahoraReloj = { FECHA_EVENTO }) }
  @After fun cleanup() { vm.viewModelScope.cancel(); Dispatchers.resetMain() }
  private fun completar() {
   vm.onNombreChange("  Feria  "); vm.onTipoChange("Feria empresarial")
@@ -101,6 +103,25 @@ class OportunidadViewModelTest {
   advanceUntilIdle(); vm.cargar(7); advanceUntilIdle()
   assertEquals(7L, vm.uiState.value.eventoId)
   assertEquals(1, vm.uiState.value.eventos.size)
+ }
+ @Test fun editarElEstadoQuedaEnElHistorial() = runTest(dispatcher) {
+  dao.items.value = listOf(OportunidadEntity(7, "Anterior", "Feria empresarial", "Desc", "Fuente", "Alta", "Alto", estado = "Contacto pendiente", eventoId = 7))
+  vm.cargar(7); advanceUntilIdle(); vm.onEstadoChange("Contacto realizado"); vm.guardar(); advanceUntilIdle()
+  val cambio = seguimientos.items.value.single()
+  assertEquals("Cambio de estado", cambio.tipoAccion)
+  assertEquals("Contacto pendiente → Contacto realizado", cambio.resultado)
+  assertEquals(USUARIO_SESION, cambio.usuarioId)
+ }
+ @Test fun sinCambioDeEstadoNoSeRegistraNada() = runTest(dispatcher) {
+  dao.items.value = listOf(OportunidadEntity(7, "Anterior", "Feria empresarial", "Desc", "Fuente", "Alta", "Alto", eventoId = 7))
+  vm.cargar(7); advanceUntilIdle(); vm.onNombreChange("Otro nombre"); vm.guardar(); advanceUntilIdle()
+  assertTrue(seguimientos.items.value.isEmpty())
+ }
+ @Test fun elHistorialSeMuestraAlEditar() = runTest(dispatcher) {
+  dao.items.value = listOf(OportunidadEntity(7, "Anterior", "Feria empresarial", "Desc", "Fuente", "Alta", "Alto", eventoId = 7))
+  seguimientos.items.value = listOf(SeguimientoEntity(id = 1, oportunidadId = 7, usuarioId = 1, tipoAccion = "Llamada", fechaHora = 1, resultado = "ok"))
+  vm.cargar(7); advanceUntilIdle()
+  assertEquals(listOf("Llamada"), vm.uiState.value.historial.map { it.seguimiento.tipoAccion })
  }
  private class FakeDao : OportunidadDao {
   val items = MutableStateFlow<List<OportunidadEntity>>(emptyList())

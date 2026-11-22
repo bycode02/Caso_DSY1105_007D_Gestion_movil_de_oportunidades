@@ -8,7 +8,10 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.opportunitymanagement.di.appContainer
 import com.example.opportunitymanagement.data.repository.EventoRepository
 import com.example.opportunitymanagement.data.repository.OportunidadRepository
+import com.example.opportunitymanagement.data.repository.SeguimientoRepository
 import com.example.opportunitymanagement.domain.usecase.ObservarSesionUseCase
+import com.example.opportunitymanagement.utils.FormatoFecha
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,8 +27,14 @@ class OportunidadViewModel(
     // Usuario con sesión iniciada: será el responsable de las oportunidades nuevas.
     private val observarSesion: ObservarSesionUseCase,
     // Eventos para el desplegable "Evento" del formulario.
-    eventoRepository: EventoRepository
+    eventoRepository: EventoRepository,
+    // Historial de seguimiento y registro automático de los cambios de estado.
+    private val seguimientoRepository: SeguimientoRepository,
+    // Fecha y hora actuales para el historial; se reemplazan en las pruebas.
+    private val ahoraReloj: () -> Long = FormatoFecha::ahoraReloj
 ) : ViewModel() {
+
+    private var observacionHistorial: Job? = null
 
     private val _uiState = MutableStateFlow(OportunidadUiState())
     val uiState: StateFlow<OportunidadUiState> = _uiState.asStateFlow()
@@ -123,8 +132,10 @@ class OportunidadViewModel(
                     referenciaGeografica = oportunidad.referenciaGeografica,
                     fechaDeteccion = oportunidad.fechaDeteccion,
                     responsableId = oportunidad.responsableId,
-                    eventoId = oportunidad.eventoId
+                    eventoId = oportunidad.eventoId,
+                    estadoGuardado = oportunidad.estado
                 )
+                observarHistorial(oportunidad.id)
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
@@ -175,6 +186,16 @@ class OportunidadViewModel(
     }
 
 
+    // El historial se actualiza solo al registrar una acción (Flow de Room).
+    private fun observarHistorial(oportunidadId: Long) {
+        observacionHistorial?.cancel()
+        observacionHistorial = viewModelScope.launch {
+            seguimientoRepository.historial(oportunidadId)
+                .catch { _uiState.update { it.copy(mensaje = "No se pudo cargar el historial") } }
+                .collect { lista -> _uiState.update { it.copy(historial = lista) } }
+        }
+    }
+
     fun guardar() {
         val estadoActual = _uiState.value
         if (!puedeEditar || estadoActual.guardadoExitosamente) return
@@ -220,6 +241,17 @@ class OportunidadViewModel(
                         eventoId = estadoActual.eventoId
                     )
                 )
+                // Al editar, un cambio de estado queda registrado en el historial.
+                val estadoAnterior = estadoActual.estadoGuardado
+                if (estadoActual.id != 0L && estadoAnterior != null && estadoAnterior != estadoActual.estado) {
+                    seguimientoRepository.registrarCambioEstado(
+                        oportunidadId = estadoActual.id,
+                        usuarioId = observarSesion().first()?.id,
+                        estadoAnterior = estadoAnterior,
+                        estadoNuevo = estadoActual.estado,
+                        fechaHora = ahoraReloj()
+                    )
+                }
                 _uiState.update { it.copy(guardando = false, guardadoExitosamente = true) }
             } catch (exception: CancellationException) {
                 _uiState.update { it.copy(guardando = false) }
@@ -243,7 +275,8 @@ class OportunidadViewModel(
                     container.oportunidadRepository,
                     OportunidadValidator(),
                     container.observarSesionUseCase,
-                    container.eventoRepository
+                    container.eventoRepository,
+                    container.seguimientoRepository
                 )
             }
         }

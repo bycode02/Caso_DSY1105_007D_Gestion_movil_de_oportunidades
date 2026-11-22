@@ -8,6 +8,16 @@ import com.example.opportunitymanagement.data.local.EventoDao
 import com.example.opportunitymanagement.data.local.EventoEntity
 import com.example.opportunitymanagement.data.local.OrganizacionConContacto
 import com.example.opportunitymanagement.data.local.OrganizacionDao
+import com.example.opportunitymanagement.data.local.OportunidadConResponsable
+import com.example.opportunitymanagement.data.local.OportunidadDao
+import com.example.opportunitymanagement.data.local.OportunidadEntity
+import com.example.opportunitymanagement.data.local.Role
+import com.example.opportunitymanagement.data.local.SeguimientoConDetalle
+import com.example.opportunitymanagement.data.local.SeguimientoDao
+import com.example.opportunitymanagement.data.local.SeguimientoEntity
+import com.example.opportunitymanagement.data.local.SesionDao
+import com.example.opportunitymanagement.data.local.SesionEntity
+import com.example.opportunitymanagement.data.local.UsuarioEntity
 import com.example.opportunitymanagement.data.local.OrganizacionEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -130,4 +140,59 @@ fun organizacion(id: Long, nombre: String = "Municipalidad Ficticia") = Organiza
 fun contacto(id: Long, organizacionId: Long, nombre: String = "Laura Soto") = ContactoEntity(
     id = id, nombre = nombre, organizacionId = organizacionId, cargo = "Encargada",
     area = "Bienestar", medioPreferente = "Correo", estado = "Por contactar"
+)
+
+/** DAO de oportunidades en memoria (para los ViewModels que la leen o cambian su estado). */
+class FakeOportunidadDao : OportunidadDao {
+    val items = MutableStateFlow<List<OportunidadEntity>>(emptyList())
+    override fun observarTodas(): Flow<List<OportunidadConResponsable>> =
+        items.map { lista -> lista.map { OportunidadConResponsable(it, responsableNombre = null) } }
+    override suspend fun buscar(id: Long) = items.value.find { it.id == id }
+    override suspend fun insertar(item: OportunidadEntity): Long {
+        val id = (items.value.maxOfOrNull { it.id } ?: 0) + 1
+        items.value = items.value + item.copy(id = id)
+        return id
+    }
+    override suspend fun actualizar(item: OportunidadEntity): Int {
+        if (items.value.none { it.id == item.id }) return 0
+        items.value = items.value.map { if (it.id == item.id) item else it }
+        return 1
+    }
+    override suspend fun eliminar(id: Long): Int {
+        val antes = items.value.size
+        items.value = items.value.filterNot { it.id == id }
+        return antes - items.value.size
+    }
+}
+
+/** DAO de seguimientos en memoria; sin JOIN, los nombres de usuario y contacto quedan en null. */
+class FakeSeguimientoDao : SeguimientoDao {
+    val items = MutableStateFlow<List<SeguimientoEntity>>(emptyList())
+    private var siguienteId = 1L
+    override fun observarPorOportunidad(oportunidadId: Long): Flow<List<SeguimientoConDetalle>> =
+        items.map { lista ->
+            lista.filter { it.oportunidadId == oportunidadId }
+                .sortedWith(compareByDescending<SeguimientoEntity> { it.fechaHora }.thenByDescending { it.id })
+                .map { SeguimientoConDetalle(it, usuarioNombre = null, contactoNombre = null) }
+        }
+    override suspend fun insertar(seguimiento: SeguimientoEntity): Long {
+        val id = siguienteId++
+        items.value = items.value + seguimiento.copy(id = id)
+        return id
+    }
+}
+
+/** Sesión en memoria con el usuario [usuarioId]; cerrar() la deja vacía. */
+class FakeSesion(usuarioId: Long) : SesionDao {
+    val usuario = MutableStateFlow<UsuarioEntity?>(
+        UsuarioEntity(usuarioId, "Vendedor", "v@ejemplo.cl", Role.VENDEDOR, true, 0, 0)
+    )
+    override fun usuarioActual() = usuario
+    override suspend fun guardar(sesion: SesionEntity) = error("no se usa")
+    override suspend fun cerrar() { usuario.value = null }
+}
+
+fun oportunidadDePrueba(id: Long, estado: String = "Contacto realizado", eventoId: Long? = 7) = OportunidadEntity(
+    id = id, nombre = "Stand dental", tipo = "Feria empresarial", descripcion = "d", fuente = "f",
+    prioridad = "Alta", potencial = "Alto", estado = estado, eventoId = eventoId
 )

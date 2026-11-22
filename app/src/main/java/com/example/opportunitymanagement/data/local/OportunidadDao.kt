@@ -10,7 +10,13 @@ interface OportunidadDao {
         """
         SELECT o.*, u.nombre AS responsableNombre,
                e.nombre AS eventoNombre, org.nombre AS organizacionNombre,
-               e.fechaInicio AS eventoFecha, e.comuna AS eventoComuna, e.region AS eventoRegion
+               e.fechaInicio AS eventoFecha, e.comuna AS eventoComuna, e.region AS eventoRegion,
+               (SELECT s.proximaAccion FROM seguimientos s
+                WHERE s.oportunidadId = o.id AND s.tipoAccion <> 'Cambio de estado'
+                ORDER BY s.fechaHora DESC, s.id DESC LIMIT 1) AS proximaAccion,
+               (SELECT s.fechaProximoSeguimiento FROM seguimientos s
+                WHERE s.oportunidadId = o.id AND s.tipoAccion <> 'Cambio de estado'
+                ORDER BY s.fechaHora DESC, s.id DESC LIMIT 1) AS proximoSeguimiento
         FROM oportunidades o
         LEFT JOIN usuario u ON u.id = o.responsableId
         LEFT JOIN eventos e ON e.id = o.eventoId

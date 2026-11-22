@@ -38,8 +38,10 @@ class ListaViewModel(
     // Se recalcula sola cuando cambian los datos de Room o los filtros elegidos.
     val uiState: StateFlow<ListaUiState> = combine(items, eliminandoId, mensaje, filtros) { lista, id, m, f ->
         val todas = lista.items
+        val hoy = hoyUtc()
         lista.copy(
-            items = FiltroOportunidades.aplicar(todas, f, hoyUtc()),
+            items = FiltroOportunidades.aplicar(todas, f, hoy),
+            hoyUtc = hoy,
             total = todas.size,
             filtros = f,
             opcionesOrganizacion = FiltroOportunidades.organizaciones(todas),

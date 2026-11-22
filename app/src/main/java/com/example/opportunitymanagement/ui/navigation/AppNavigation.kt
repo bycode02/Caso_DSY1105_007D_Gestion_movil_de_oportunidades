@@ -24,6 +24,7 @@ import com.example.opportunitymanagement.ui.auth.RegisterScreen
 import com.example.opportunitymanagement.ui.opportunities.*
 import com.example.opportunitymanagement.ui.contacts.ContactoFormScreen
 import com.example.opportunitymanagement.ui.events.EventoFormScreen
+import com.example.opportunitymanagement.ui.followups.SeguimientoFormScreen
 import com.example.opportunitymanagement.ui.events.EventoListaScreen
 import com.example.opportunitymanagement.ui.organizations.OrganizacionFormScreen
 import com.example.opportunitymanagement.ui.organizations.OrganizacionListaScreen
@@ -33,6 +34,7 @@ import com.example.opportunitymanagement.utils.QrScanner
 import com.example.opportunitymanagement.viewmodel.ContactoViewModel
 import com.example.opportunitymanagement.viewmodel.EventoListaViewModel
 import com.example.opportunitymanagement.viewmodel.EventoViewModel
+import com.example.opportunitymanagement.viewmodel.SeguimientoViewModel
 import com.example.opportunitymanagement.viewmodel.LoginViewModel
 import com.example.opportunitymanagement.viewmodel.OrganizacionListaViewModel
 import com.example.opportunitymanagement.viewmodel.OrganizacionViewModel
@@ -259,8 +261,31 @@ fun AppNavigation(session: SessionUiState, onLogout: () -> Unit) {
                 onObservacionesChange = vm::onObservacionesChange,
                 onReferenciaGeograficaChange = vm::onReferenciaGeograficaChange,
                 onEventoChange = vm::onEventoChange,
+                onRegistrarAccion = { nav.navigate("seguimiento/${s.id}") },
                 guardar = vm::guardar,
                 volver = { nav.popBackStack() }
+            )
+        }
+        composable("seguimiento/{oportunidadId}") { entry ->
+            val vm: SeguimientoViewModel = viewModel(factory = SeguimientoViewModel.Factory)
+            val s by vm.uiState.collectAsStateWithLifecycle()
+            LaunchedEffect(Unit) {
+                vm.cargar(entry.arguments?.getString("oportunidadId")?.toLongOrNull() ?: 0)
+            }
+            LaunchedEffect(s.guardadoExitosamente) { if (s.guardadoExitosamente) nav.popBackStack() }
+            SeguimientoFormScreen(
+                state = s,
+                onTipoAccionChange = vm::onTipoAccionChange,
+                onFechaChange = vm::onFechaChange,
+                onHoraChange = vm::onHoraChange,
+                onContactoChange = vm::onContactoChange,
+                onResultadoChange = vm::onResultadoChange,
+                onProximaAccionChange = vm::onProximaAccionChange,
+                onFechaProximoChange = vm::onFechaProximoChange,
+                onObservacionesChange = vm::onObservacionesChange,
+                onCambiarEstadoChange = vm::onCambiarEstadoChange,
+                onGuardar = vm::guardar,
+                onVolver = { nav.popBackStack() }
             )
         }
         composable("qr") {

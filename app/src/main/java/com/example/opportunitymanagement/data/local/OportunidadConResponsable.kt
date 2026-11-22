@@ -17,5 +17,8 @@ data class OportunidadConResponsable(
     // Datos del evento para buscar y filtrar (fecha = medianoche UTC del día del evento).
     val eventoFecha: Long? = null,
     val eventoComuna: String? = null,
-    val eventoRegion: String? = null
+    val eventoRegion: String? = null,
+    // Próxima acción del último seguimiento registrado (no cuenta los cambios de estado).
+    val proximaAccion: String? = null,
+    val proximoSeguimiento: Long? = null
 )

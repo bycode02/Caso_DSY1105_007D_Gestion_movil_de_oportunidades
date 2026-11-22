@@ -32,7 +32,17 @@ object FiltroOportunidades {
         if (f.comuna != null && item.eventoComuna != f.comuna) return false
         if (f.region != null && item.eventoRegion != f.region) return false
         if (f.responsable != null && item.responsableNombre != f.responsable) return false
+        if (f.seguimiento != null && seguimiento(item, hoyUtc) != f.seguimiento) return false
         return cumpleFecha(item.eventoFecha, f.fecha, hoyUtc)
+    }
+
+    /**
+     * Situación del próximo seguimiento: atrasado si su fecha ya pasó, pendiente si es hoy o
+     * más adelante, y null si la oportunidad no tiene una próxima acción programada.
+     */
+    fun seguimiento(item: OportunidadConResponsable, hoyUtc: Long): FiltroSeguimiento? {
+        val fecha = item.proximoSeguimiento ?: return null
+        return if (fecha < hoyUtc) FiltroSeguimiento.ATRASADOS else FiltroSeguimiento.PENDIENTES
     }
 
     private fun cumpleFecha(fechaEvento: Long?, rango: RangoFecha, hoyUtc: Long): Boolean {

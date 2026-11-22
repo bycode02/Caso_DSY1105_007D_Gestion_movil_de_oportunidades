@@ -9,6 +9,8 @@ import java.util.TimeZone
 /** Formatos de fecha y hora para mostrar en pantalla. */
 object FormatoFecha {
 
+    private const val DIA_MS = 24L * 60 * 60 * 1000
+
     /**
      * Las fechas de evento se guardan como medianoche UTC (lo que entrega el DatePicker),
      * por eso se formatean en UTC: así no se corren un día según la zona horaria del teléfono.
@@ -28,6 +30,22 @@ object FormatoFecha {
             clear()
             set(local.get(Calendar.YEAR), local.get(Calendar.MONTH), local.get(Calendar.DAY_OF_MONTH))
         }.timeInMillis
+    }
+
+    /**
+     * Fecha y hora de este momento como "hora de reloj": medianoche UTC de hoy + los minutos
+     * que marca el reloj del teléfono. Es el formato de la fecha de los seguimientos.
+     */
+    fun ahoraReloj(): Long {
+        val local = Calendar.getInstance()
+        val minutos = local.get(Calendar.HOUR_OF_DAY) * 60 + local.get(Calendar.MINUTE)
+        return hoyUtc() + minutos * 60_000L
+    }
+
+    /** Fecha y hora de un seguimiento: "20/11/2026 10:30". */
+    fun fechaHora(relojUtc: Long): String {
+        val minutos = ((relojUtc % DIA_MS) / 60_000L).toInt()
+        return "${fecha(relojUtc - relojUtc % DIA_MS)} ${hora(minutos)}"
     }
 
     /** 570 → "09:30". */

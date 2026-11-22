@@ -10,5 +10,6 @@ data class FiltrosOportunidad(
     val comuna: String? = null,
     val region: String? = null,
     val responsable: String? = null,
-    val fecha: RangoFecha = RangoFecha.TODAS
+    val fecha: RangoFecha = RangoFecha.TODAS,
+    val seguimiento: FiltroSeguimiento? = null
 )

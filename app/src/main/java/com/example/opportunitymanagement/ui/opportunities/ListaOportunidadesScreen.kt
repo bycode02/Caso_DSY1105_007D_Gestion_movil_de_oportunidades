@@ -1,7 +1,10 @@
 package com.example.opportunitymanagement.ui.opportunities
 
 import com.example.opportunitymanagement.ui.theme.Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme
+import com.example.opportunitymanagement.viewmodel.FiltroOportunidades
+import com.example.opportunitymanagement.viewmodel.FiltroSeguimiento
 import com.example.opportunitymanagement.viewmodel.FiltrosOportunidad
+import com.example.opportunitymanagement.utils.FormatoFecha
 import com.example.opportunitymanagement.viewmodel.ListaUiState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -103,7 +106,8 @@ fun ListaOportunidadesScreen(
                     abrir = { editar(o.id) },
                     eliminar = { porEliminar = o },
                     eliminando = s.eliminandoId == o.id,
-                    habilitado = s.eliminandoId == null
+                    habilitado = s.eliminandoId == null,
+                    hoyUtc = s.hoyUtc
                 )
             }
         }
@@ -116,7 +120,8 @@ fun OportunidadCard(
     abrir: () -> Unit,
     eliminar: () -> Unit,
     eliminando: Boolean = false,
-    habilitado: Boolean = true
+    habilitado: Boolean = true,
+    hoyUtc: Long = 0L
 ) {
     val o = item.oportunidad
     Card(onClick = abrir, enabled = habilitado, modifier = Modifier.fillMaxWidth()) {
@@ -136,6 +141,7 @@ fun OportunidadCard(
                 "Responsable: ${item.responsableNombre ?: "Sin asignar"}",
                 style = MaterialTheme.typography.bodyMedium
             )
+            ProximoSeguimiento(item, hoyUtc)
             item.eventoNombre?.let { evento ->
                 Text(
                     "Evento: $evento · ${item.organizacionNombre.orEmpty()}",
@@ -233,5 +239,29 @@ private fun ListaSinCoincidenciasPreview() {
             ),
             {}, {}, {}, {}, {}, {}, {}
         )
+    }
+}
+
+/** "Próxima acción: Llamada · 22/11/2026" o, si ya pasó, "Seguimiento atrasado desde ..." en rojo. */
+@Composable
+fun ProximoSeguimiento(item: OportunidadConResponsable, hoyUtc: Long) {
+    val fecha = item.proximoSeguimiento ?: return
+    val atrasado = FiltroOportunidades.seguimiento(item, hoyUtc) == FiltroSeguimiento.ATRASADOS
+    Text(
+        if (atrasado) "Seguimiento atrasado desde ${FormatoFecha.fecha(fecha)}"
+        else "Próxima acción: ${item.proximaAccion.orEmpty()} · ${FormatoFecha.fecha(fecha)}",
+        style = MaterialTheme.typography.labelLarge,
+        color = if (atrasado) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ProximoSeguimientoPreview() {
+    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme {
+        Column {
+            ProximoSeguimiento(ejemplo.copy(proximaAccion = "Llamada", proximoSeguimiento = 1_805_068_800_000), hoyUtc = 0L)
+            ProximoSeguimiento(ejemplo.copy(proximaAccion = "Llamada", proximoSeguimiento = 1_805_068_800_000), hoyUtc = 1_806_000_000_000)
+        }
     }
 }

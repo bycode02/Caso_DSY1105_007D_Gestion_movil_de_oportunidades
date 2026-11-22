@@ -17,6 +17,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.example.opportunitymanagement.data.local.EventoConOrganizacion
 import com.example.opportunitymanagement.data.local.OportunidadEntity
 import com.example.opportunitymanagement.utils.FormatoFecha
+import com.example.opportunitymanagement.ui.followups.SeccionHistorial
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,6 +33,7 @@ fun OportunidadFormScreen(
     onObservacionesChange: (String) -> Unit,
     onReferenciaGeograficaChange: (String) -> Unit,
     onEventoChange: (Long?) -> Unit,
+    onRegistrarAccion: () -> Unit,
     guardar: () -> Unit,
     volver: () -> Unit
 ) {
@@ -136,6 +138,10 @@ fun OportunidadFormScreen(
                 "Código QR de este registro: OPORTUNIDAD:${s.id}",
                 style = MaterialTheme.typography.bodySmall
             )
+            // El historial necesita una oportunidad ya guardada.
+            if (s.id != 0L && !s.cargando && !s.cargaFallida) {
+                SeccionHistorial(s.historial, enabled = !s.guardando, onRegistrarAccion = onRegistrarAccion)
+            }
         }
     }
 }
@@ -166,6 +172,7 @@ private fun FormularioPreview(s: OportunidadUiState) {
         onObservacionesChange = {},
         onReferenciaGeograficaChange = {},
         onEventoChange = {},
+        onRegistrarAccion = {},
         guardar = {},
         volver = {}
     )
