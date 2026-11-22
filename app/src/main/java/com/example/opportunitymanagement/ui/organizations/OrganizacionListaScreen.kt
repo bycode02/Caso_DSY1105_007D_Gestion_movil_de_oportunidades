@@ -1,4 +1,4 @@
-package com.example.opportunitymanagement.ui.organizaciones
+package com.example.opportunitymanagement.ui.organizations
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.opportunitymanagement.data.local.OrganizacionConContacto
 import com.example.opportunitymanagement.data.local.OrganizacionEntity
 import com.example.opportunitymanagement.ui.theme.Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme
 import com.example.opportunitymanagement.viewmodel.OrganizacionListaUiState
@@ -98,9 +99,10 @@ fun OrganizacionListaScreen(
                     Modifier.padding(vertical = 36.dp)
                 )
             }
-            items(s.items, key = { it.id }) { o ->
+            items(s.items, key = { it.organizacion.id }) { item ->
+                val o = item.organizacion
                 OrganizacionCard(
-                    organizacion = o,
+                    item = item,
                     abrir = { editar(o.id) },
                     eliminar = { porEliminar = o }
                 )
@@ -111,10 +113,11 @@ fun OrganizacionListaScreen(
 
 @Composable
 fun OrganizacionCard(
-    organizacion: OrganizacionEntity,
+    item: OrganizacionConContacto,
     abrir: () -> Unit,
     eliminar: () -> Unit
 ) {
+    val organizacion = item.organizacion
     Card(onClick = abrir, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
@@ -128,6 +131,7 @@ fun OrganizacionCard(
                 "${organizacion.comuna}, ${organizacion.region}",
                 style = MaterialTheme.typography.bodyMedium
             )
+            ContactoResumen(item.contactoNombre, item.totalContactos)
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -143,6 +147,24 @@ fun OrganizacionCard(
     }
 }
 
+/** "Contacto: Laura Soto (+1)", o un aviso si la organización todavía no tiene contactos. */
+@Composable
+fun ContactoResumen(contactoNombre: String?, totalContactos: Int) {
+    if (contactoNombre == null) {
+        Text(
+            "Sin contactos · agrega uno",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.error
+        )
+    } else {
+        val otros = totalContactos - 1
+        Text(
+            "Contacto: $contactoNombre" + if (otros > 0) " (+$otros)" else "",
+            style = MaterialTheme.typography.labelLarge
+        )
+    }
+}
+
 private val organizacionDePrueba = OrganizacionEntity(
     id = 1,
     nombre = "Municipalidad Ficticia",
@@ -153,12 +175,20 @@ private val organizacionDePrueba = OrganizacionEntity(
     sitioWeb = "www.ejemplo.cl"
 )
 
+private val conContacto = OrganizacionConContacto(organizacionDePrueba, "Laura Soto", totalContactos = 2)
+
+private val sinContacto = OrganizacionConContacto(
+    organizacionDePrueba.copy(id = 2, nombre = "Empresa Demo SpA", tipo = "Empresa", rubro = "Retail"),
+    contactoNombre = null,
+    totalContactos = 0
+)
+
 @Preview(showBackground = true)
 @Composable
 private fun OrganizacionListaPreview() {
     Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme {
         OrganizacionListaScreen(
-            OrganizacionListaUiState(items = listOf(organizacionDePrueba), cargando = false),
+            OrganizacionListaUiState(items = listOf(conContacto, sinContacto), cargando = false),
             {}, {}, {}, {}
         )
     }
@@ -178,7 +208,7 @@ private fun OrganizacionListaConMensajePreview() {
     Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme {
         OrganizacionListaScreen(
             OrganizacionListaUiState(
-                items = listOf(organizacionDePrueba),
+                items = listOf(conContacto),
                 cargando = false,
                 mensaje = "No se puede eliminar: la organización tiene contactos. Elimínalos primero."
             ),
@@ -191,6 +221,14 @@ private fun OrganizacionListaConMensajePreview() {
 @Composable
 private fun OrganizacionCardPreview() {
     Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme {
-        OrganizacionCard(organizacionDePrueba, abrir = {}, eliminar = {})
+        OrganizacionCard(conContacto, abrir = {}, eliminar = {})
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun OrganizacionCardSinContactoPreview() {
+    Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme {
+        OrganizacionCard(sinContacto, abrir = {}, eliminar = {})
     }
 }

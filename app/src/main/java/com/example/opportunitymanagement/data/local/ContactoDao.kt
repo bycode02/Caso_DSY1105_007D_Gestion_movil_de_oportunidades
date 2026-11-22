@@ -13,7 +13,7 @@ interface ContactoDao {
      fun getAll(): Flow<List<ContactoEntity>>
 
     @Query("SELECT * from contactos where id= :id LIMIT 1")
-    suspend fun findById(id: Long): ContactoEntity
+    suspend fun findById(id: Long): ContactoEntity?
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(contact: ContactoEntity): Long

@@ -24,6 +24,9 @@ class ContactoViewModel(
     private val _uiState = MutableStateFlow(ContactoUiState())
     val uiState: StateFlow<ContactoUiState> = _uiState.asStateFlow()
 
+    // Última carga pedida (id del contacto y organización preseleccionada).
+    private var cargaSolicitada: Pair<Long, Long?>? = null
+
     init {
         // Llena el desplegable y lo mantiene al día si se crea o borra una organización.
         viewModelScope.launch {
@@ -83,10 +86,23 @@ class ContactoViewModel(
         _uiState.update { it.copy(observaciones = value, mensaje = null) }
     }
 
-    fun cargar(id: Long) {
+    /**
+     * @param organizacionId organización ya elegida al crear un contacto desde su organización.
+     * Al editar (id != 0) se ignora: manda la organización guardada en el contacto.
+     */
+    fun cargar(id: Long, organizacionId: Long? = null) {
+        // La pantalla vuelve a llamar a cargar() al recomponerse; solo se carga una vez.
+        if (cargaSolicitada == id to organizacionId) return
+        cargaSolicitada = id to organizacionId
+
         // Se usa update y no un ContactoUiState nuevo, para no perder la lista de organizaciones.
         _uiState.update {
-            ContactoUiState(id = id, cargando = id != 0L, organizaciones = it.organizaciones)
+            ContactoUiState(
+                id = id,
+                cargando = id != 0L,
+                organizacionId = if (id == 0L) organizacionId?.takeIf { org -> org > 0L } else null,
+                organizaciones = it.organizaciones
+            )
         }
         if (id == 0L) return
 

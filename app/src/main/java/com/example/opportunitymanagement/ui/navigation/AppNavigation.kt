@@ -16,18 +16,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.*
+import androidx.navigation.navArgument
 import com.example.opportunitymanagement.ui.auth.LoginScreen
 import com.example.opportunitymanagement.ui.auth.RegisterScreen
 import com.example.opportunitymanagement.ui.opportunities.*
-import com.example.opportunitymanagement.ui.organizaciones.OrganizacionFormScreen
-import com.example.opportunitymanagement.ui.organizaciones.OrganizacionListaScreen
+import com.example.opportunitymanagement.ui.contacts.ContactoFormScreen
+import com.example.opportunitymanagement.ui.organizations.OrganizacionFormScreen
+import com.example.opportunitymanagement.ui.organizations.OrganizacionListaScreen
 import com.example.opportunitymanagement.ui.profile.ProfileScreen
 import com.example.opportunitymanagement.ui.theme.Caso_DSY1105_007D_Gestion_movil_de_oportunidadesTheme
 import com.example.opportunitymanagement.utils.QrScanner
+import com.example.opportunitymanagement.viewmodel.ContactoViewModel
 import com.example.opportunitymanagement.viewmodel.LoginViewModel
 import com.example.opportunitymanagement.viewmodel.OrganizacionListaViewModel
-import com.example.opportunitymanagement.viewmodel.OrganizacioneViewModel
+import com.example.opportunitymanagement.viewmodel.OrganizacionViewModel
 import com.example.opportunitymanagement.viewmodel.RegisterViewModel
 import com.example.opportunitymanagement.viewmodel.SessionUiState
 import com.example.opportunitymanagement.viewmodel.UsuarioViewModel
@@ -120,7 +124,7 @@ fun AppNavigation(session: SessionUiState, onLogout: () -> Unit) {
                 { nav.popBackStack() })
         }
         composable("organizacion/{id}") { entry ->
-            val vm: OrganizacioneViewModel = viewModel(factory = OrganizacioneViewModel.Factory)
+            val vm: OrganizacionViewModel = viewModel(factory = OrganizacionViewModel.Factory)
             val s by vm.uiState.collectAsStateWithLifecycle()
             LaunchedEffect(Unit) {
                 vm.cargar(entry.arguments?.getString("id")?.toLongOrNull() ?: 0)
@@ -137,7 +141,43 @@ fun AppNavigation(session: SessionUiState, onLogout: () -> Unit) {
                 onObservacionesChange = vm::onObservacionesChange,
                 onGuardar = vm::guardar,
                 onVolver = { nav.popBackStack() },
-
+                // s.id es el de la organización ya guardada (también recién creada).
+                onAgregarContacto = { nav.navigate("contacto/0?organizacionId=${s.id}") },
+                onAbrirContacto = { nav.navigate("contacto/$it") }
+            )
+        }
+        composable(
+            "contacto/{id}?organizacionId={organizacionId}",
+            arguments = listOf(
+                navArgument("organizacionId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { entry ->
+            val vm: ContactoViewModel = viewModel(factory = ContactoViewModel.Factory)
+            val s by vm.uiState.collectAsStateWithLifecycle()
+            LaunchedEffect(Unit) {
+                vm.cargar(
+                    id = entry.arguments?.getString("id")?.toLongOrNull() ?: 0,
+                    organizacionId = entry.arguments?.getString("organizacionId")?.toLongOrNull()
+                )
+            }
+            LaunchedEffect(s.guardadoExitosamente) { if (s.guardadoExitosamente) nav.popBackStack() }
+            ContactoFormScreen(
+                state = s,
+                onNombreChange = vm::onNombreChange,
+                onOrganizacionChange = vm::onOrganizacionChange,
+                onCargoChange = vm::onCargoChange,
+                onAreaChange = vm::onAreaChange,
+                onCorreoChange = vm::onCorreoChange,
+                onTelefonoChange = vm::onTelefonoChange,
+                onMedioPreferenteChange = vm::onMedioPreferenteChange,
+                onEstadoChange = vm::onEstadoChange,
+                onObservacionesChange = vm::onObservacionesChange,
+                onGuardar = vm::guardar,
+                onVolver = { nav.popBackStack() }
             )
         }
         composable("form/{id}") { entry ->

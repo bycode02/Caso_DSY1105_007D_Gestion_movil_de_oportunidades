@@ -1,6 +1,7 @@
 package com.example.opportunitymanagement.data.repository
 
 import android.database.sqlite.SQLiteConstraintException
+import com.example.opportunitymanagement.data.local.OrganizacionConContacto
 import com.example.opportunitymanagement.data.local.OrganizacionDao
 import com.example.opportunitymanagement.data.local.OrganizacionEntity
 import kotlinx.coroutines.flow.Flow
@@ -13,6 +14,9 @@ class OrganizacionRepository(private val dao: OrganizacionDao) {
 
     // Se actualiza sola cuando cambia la tabla, igual que la lista de oportunidades.
     val organizaciones: Flow<List<OrganizacionEntity>> = dao.obtenerTodas()
+
+    // Para la lista de organizaciones: incluye el contacto principal y el total de contactos.
+    val organizacionesConContacto: Flow<List<OrganizacionConContacto>> = dao.observarConContacto()
 
     suspend fun buscar(id: Long): OrganizacionEntity? = dao.encontrarPorId(id)
 

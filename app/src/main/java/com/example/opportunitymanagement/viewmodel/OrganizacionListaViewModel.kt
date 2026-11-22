@@ -25,7 +25,7 @@ class OrganizacionListaViewModel(
     // Evita borrar dos veces con un doble toque.
     private var eliminando = false
 
-    private val items = repository.organizaciones
+    private val items = repository.organizacionesConContacto
         .map { OrganizacionListaUiState(items = it, cargando = false) }
         .catch {
             emit(OrganizacionListaUiState(cargando = false, error = "No se pudieron cargar las organizaciones"))

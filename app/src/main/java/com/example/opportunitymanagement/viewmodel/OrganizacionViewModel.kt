@@ -1,29 +1,39 @@
 package com.example.opportunitymanagement.viewmodel
 
-import com.example.opportunitymanagement.data.repository.OrganizacionRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.opportunitymanagement.data.local.OrganizacionEntity
+import com.example.opportunitymanagement.data.repository.ContactoRepository
+import com.example.opportunitymanagement.data.repository.OrganizacionRepository
 import com.example.opportunitymanagement.di.appContainer
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
-class OrganizacioneViewModel(
+class OrganizacionViewModel(
     private val repository: OrganizacionRepository,
+    private val contactoRepository: ContactoRepository,
     private val validator: OrganizacionValidator
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(OrganizacionUiState())
     val uiState: StateFlow<OrganizacionUiState> = _uiState.asStateFlow()
 
-    private val puedeEditar : Boolean
-        get() = _uiState.value.let { !it.guardando && !it.cargando && !it.cargaFallida }
+    // Id que ya se pidió cargar. Al volver del formulario de contacto la pantalla vuelve a
+    // llamar a cargar(); así no se pierden los cambios sin guardar ni el id recién creado.
+    private var idCargado: Long? = null
 
+    // Observación de los contactos de la organización abierta.
+    private var observacionContactos: Job? = null
+
+    private val puedeEditar: Boolean
+        get() = _uiState.value.let { !it.guardando && !it.cargando && !it.cargaFallida }
 
     fun onNombreChange(value: String) {
         if (!puedeEditar) return
@@ -60,44 +70,56 @@ class OrganizacioneViewModel(
         _uiState.update { it.copy(observaciones = value, mensaje = null) }
     }
 
-    fun cargar(id:Long){
+    fun cargar(id: Long) {
+        if (idCargado == id) return
+        idCargado = id
 
-        _uiState.value = OrganizacionUiState(id = id , cargando = id != 0L)
+        _uiState.value = OrganizacionUiState(id = id, cargando = id != 0L)
+        if (id == 0L) return
 
-        if(id == 0L)return
-
-        viewModelScope.launch{
+        viewModelScope.launch {
             try {
                 val organizacion = repository.buscar(id)
-                if(organizacion == null){
+                if (organizacion == null) {
                     _uiState.value = OrganizacionUiState(
                         id = id,
                         cargaFallida = true,
-                        mensaje = "No existe una ortganizacion con el id ${id}"
+                        mensaje = "No existe una organización con ese código"
                     )
                     return@launch
                 }
-               _uiState.value = OrganizacionUiState(
-                   id = organizacion.id,
-                   nombre = organizacion.nombre,
-                   tipo = organizacion.tipo,
-                   rubro = organizacion.rubro,
-                   comuna = organizacion.comuna,
-                   region = organizacion.region,
-                   sitioWeb = organizacion.sitioWeb,
-                   observaciones = organizacion.observaciones
-               )
-
-            }catch(exeption: CancellationException){
-                throw  exeption
-            }catch (exeption : Exception){
-                _uiState.update {  it.copy(
-                    id = id,
-                    cargaFallida = true,
-                    mensaje = "No se pudo abrir la organizacion"
+                _uiState.value = OrganizacionUiState(
+                    id = organizacion.id,
+                    nombre = organizacion.nombre,
+                    tipo = organizacion.tipo,
+                    rubro = organizacion.rubro,
+                    comuna = organizacion.comuna,
+                    region = organizacion.region,
+                    sitioWeb = organizacion.sitioWeb,
+                    observaciones = organizacion.observaciones
                 )
+                observarContactos(organizacion.id)
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                _uiState.update {
+                    it.copy(
+                        cargando = false,
+                        cargaFallida = true,
+                        mensaje = "No se pudo abrir la organización"
+                    )
                 }
             }
+        }
+    }
+
+    // La lista se actualiza sola cuando se agrega, edita o borra un contacto (Flow de Room).
+    private fun observarContactos(organizacionId: Long) {
+        observacionContactos?.cancel()
+        observacionContactos = viewModelScope.launch {
+            contactoRepository.contactosDeOrganizacion(organizacionId)
+                .catch { _uiState.update { it.copy(mensaje = "No se pudieron cargar los contactos") } }
+                .collect { lista -> _uiState.update { it.copy(contactos = lista, contactosCargados = true) } }
         }
     }
 
@@ -137,11 +159,11 @@ class OrganizacioneViewModel(
         if (!validateForm()) return
 
         // Bloquea un segundo toque antes de lanzar la corrutina.
-        _uiState.update { it.copy(guardando = true, mensaje = null) }
+        _uiState.update { it.copy(guardando = true, mensaje = null, aviso = null) }
 
         viewModelScope.launch {
             try {
-                repository.guardar(
+                val idGuardado = repository.guardar(
                     OrganizacionEntity(
                         id = estadoActual.id,
                         nombre = estadoActual.nombre.trim(),
@@ -153,7 +175,21 @@ class OrganizacioneViewModel(
                         observaciones = estadoActual.observaciones.trim()
                     )
                 )
-                _uiState.update { it.copy(guardando = false, guardadoExitosamente = true) }
+                if (estadoActual.id == 0L) {
+                    // Organización nueva: la pantalla queda abierta para agregar sus contactos.
+                    _uiState.update {
+                        it.copy(
+                            id = idGuardado,
+                            guardando = false,
+                            aviso = "Organización guardada. Ahora agrega al menos un contacto: " +
+                                "la persona con quien gestionarás sus eventos."
+                        )
+                    }
+                    observarContactos(idGuardado)
+                } else {
+                    // Edición: vuelve a la lista.
+                    _uiState.update { it.copy(guardando = false, guardadoExitosamente = true) }
+                }
             } catch (exception: CancellationException) {
                 _uiState.update { it.copy(guardando = false) }
                 throw exception
@@ -170,16 +206,16 @@ class OrganizacioneViewModel(
         }
     }
 
-    companion object{
+    companion object {
         val Factory = viewModelFactory {
             initializer {
-                OrganizacioneViewModel(
-                    appContainer().organizacionRepository,
+                val container = appContainer()
+                OrganizacionViewModel(
+                    container.organizacionRepository,
+                    container.contactoRepository,
                     OrganizacionValidator()
                 )
             }
         }
     }
-
-
 }
